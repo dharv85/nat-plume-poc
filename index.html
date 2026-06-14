@@ -8,7 +8,7 @@
   <style>
     html, body { margin: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; }
     #app { display: flex; height: 100%; }
-    #panel { width: 320px; min-width: 320px; overflow-y: auto; background: #f7f8fa;
+    #panel { width: 330px; min-width: 330px; overflow-y: auto; background: #f7f8fa;
              border-right: 1px solid #d8dce1; padding: 14px 16px; box-sizing: border-box; }
     #map { flex: 1; }
     h1 { font-size: 16px; margin: 0 0 2px; color: #1b3a5b; }
@@ -24,8 +24,12 @@
     button { width: 100%; padding: 9px; font-size: 13px; font-weight: 600; color: #fff;
              background: #1b6ec2; border: 0; border-radius: 5px; cursor: pointer; margin-top: 4px; }
     button:hover { background: #155a9e; }
+    button:disabled { background: #b9c2cc; cursor: not-allowed; }
     #place { background: #4a7; }
     #place:hover { background: #386; }
+    #signin { background: #2e7d5b; }
+    #signin:hover { background: #246048; }
+    #authstat { font-size: 11px; color: #41607d; margin-top: 6px; }
     #legendbox { margin-top: 8px; font-size: 11px; color: #444; }
     #ramp { height: 12px; border-radius: 3px; margin: 4px 0 2px;
             background: linear-gradient(90deg,#2b58c8,#19b0c8,#37b24d,#f5c211,#e8400f); }
@@ -33,6 +37,9 @@
     #status { font-size: 11px; color: #6b7480; margin-top: 8px; min-height: 14px; }
     .pill { display:inline-block; background:#eef3f8; color:#41607d; border-radius:10px;
             padding:1px 7px; font-size:10px; margin-left:4px; }
+    .demo { display:inline-block; background:#fff3cd; color:#8a6d00; border:1px solid #f0d68a;
+            border-radius:4px; padding:1px 6px; font-size:9px; font-weight:600; }
+    #stdout { font-size: 11px; color: #333; margin-top: 6px; line-height: 1.4; }
   </style>
 </head>
 <body>
@@ -40,6 +47,12 @@
   <div id="panel">
     <h1>NAT Plume Modeller <span class="pill">POC</span></h1>
     <div class="sub">Domenico / BIOSCREEN · metric · validated engine</div>
+
+    <fieldset>
+      <legend>ArcGIS sign-in</legend>
+      <button id="signin">Sign in to ArcGIS</button>
+      <div id="authstat">Not signed in · running standalone (OSM basemap).</div>
+    </fieldset>
 
     <fieldset>
       <legend>Hydrogeology</legend>
@@ -77,6 +90,19 @@
     </fieldset>
 
     <fieldset>
+      <legend>Compliance standard <span class="demo">DEMO</span></legend>
+      <label>Framework / guideline</label>
+      <select id="fw"></select>
+      <label>Table / condition</label>
+      <select id="tbl"></select>
+      <label>Contaminant</label>
+      <select id="cont"></select>
+      <div id="stdout"></div>
+      <div class="hint">Illustrative values only. Live, authoritative standards load from
+        SLR's EQuIS library after sign-in (never stored in this public app).</div>
+    </fieldset>
+
+    <fieldset>
       <legend>Model domain</legend>
       <div class="row">
         <div><label>Sim. time (yr)</label><input id="t" type="number" value="10" step="1"></div>
@@ -86,7 +112,7 @@
         <div><label>Length (m)</label><input id="L" type="number" value="400" step="10"></div>
         <div><label>Width (m)</label><input id="W" type="number" value="220" step="10"></div>
       </div>
-      <label>Compliance / display threshold (mg/L)</label>
+      <label>Compliance / display threshold (mg/L) <span class="hint">auto-filled from standard; editable</span></label>
       <input id="tc" type="number" value="0.005" step="0.001">
     </fieldset>
 
@@ -103,6 +129,31 @@
   <div id="map"></div>
 </div>
 
+<script>
+  // ===========================================================================
+  // CONFIG — Esri OAuth. Dan: after registering the OAuth app in AGOL, paste the
+  // Client ID below. Until then, sign-in is disabled and the app runs standalone.
+  // The Client ID is NOT a secret (public OAuth client + PKCE) — safe in client code.
+  // See DEPLOY.md "Esri sign-in setup".
+  // ===========================================================================
+  var CONFIG = {
+    CLIENT_ID: "",                            // <-- paste OAuth app Client ID here
+    PORTAL_URL: "https://www.arcgis.com"      // or SLR org URL e.g. https://slr.maps.arcgis.com
+  };
+
+  // DEMO compliance standards (µg/L). ILLUSTRATIVE ONLY — not authoritative.
+  // Real values come from EQuIS (secured AGOL table) after sign-in; never hard-coded here.
+  var DEMO_STANDARDS = {
+    "(manual entry)": null,
+    "Ontario O.Reg 153/04 — DEMO": {
+      "Table 2 — Potable GW": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "PHC F3": 500, "PHC F4": 500 },
+      "Table 3 — Non-Potable GW": { "Benzene": 44, "Ethylbenzene": 230, "PHC F3": 500, "PHC F4": 500 }
+    },
+    "CCME 2006 — DEMO": {
+      "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 }
+    }
+  };
+</script>
 <script src="https://js.arcgis.com/4.30/"></script>
 <script src="engine.js"></script>
 <script>
@@ -112,29 +163,86 @@ require([
   "esri/layers/support/ControlPointsGeoreference",
   "esri/layers/support/LocalMediaElementSource",
   "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/Point",
-  "esri/geometry/support/webMercatorUtils"
+  "esri/geometry/support/webMercatorUtils",
+  "esri/identity/OAuthInfo", "esri/identity/IdentityManager"
 ], function (Map, MapView, MediaLayer, ImageElement,
              ControlPointsGeoreference, LocalMediaElementSource,
-             GraphicsLayer, Graphic, Point, webMercatorUtils) {
+             GraphicsLayer, Graphic, Point, webMercatorUtils,
+             OAuthInfo, esriId) {
 
-  // "osm" is a built-in OpenStreetMap basemap — no API key required (POC).
-  // Production swaps to Esri basemaps served via the user's authenticated AGOL session.
+  var $ = function (id) { return document.getElementById(id); };
+  var status = function (m) { $("status").textContent = m; };
+  function num(id) { return parseFloat($(id).value); }
+
+  // "osm" is a built-in OpenStreetMap basemap — no API key, works signed-out (POC).
+  // After sign-in we switch to an Esri basemap to prove the authenticated session.
   var map = new Map({ basemap: "osm" });
   var srcLayer = new GraphicsLayer();
-  // Explicit LocalMediaElementSource so .elements is a real collection we can update.
   var plumeSource = new LocalMediaElementSource({ elements: [] });
   var plumeLayer = new MediaLayer({ source: plumeSource });
   map.addMany([plumeLayer, srcLayer]);
 
-  // Default source location (Calgary, AB — move it anywhere).
-  var source = { lon: -114.0719, lat: 51.0447 };
+  var source = { lon: -114.0719, lat: 51.0447 }; // Calgary default; move anywhere
   var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
 
-  var $ = function (id) { return document.getElementById(id); };
-  var status = function (m) { $("status").textContent = m; };
+  // -------- Esri OAuth (guarded: only active once a Client ID is configured) --------
+  var oauthInfo = null;
+  if (CONFIG.CLIENT_ID) {
+    oauthInfo = new OAuthInfo({ appId: CONFIG.CLIENT_ID, popup: true, portalUrl: CONFIG.PORTAL_URL });
+    esriId.registerOAuthInfos([oauthInfo]);
+    esriId.checkSignInStatus(CONFIG.PORTAL_URL + "/sharing").then(onSignedIn).catch(function () {});
+  } else {
+    $("signin").disabled = true;
+    $("authstat").textContent = "Sign-in not configured yet (no Client ID). Runs standalone.";
+  }
 
-  function num(id) { return parseFloat($(id).value); }
+  function onSignedIn(cred) {
+    var user = (cred && cred.userId) ? cred.userId : "ArcGIS user";
+    $("authstat").textContent = "Signed in: " + user;
+    $("signin").textContent = "Signed in ✓"; $("signin").disabled = true;
+    try { map.basemap = "arcgis/topographic"; } catch (e) {}
+    status("Signed in to ArcGIS — org layers & EQuIS standards available in the full build.");
+  }
+  $("signin").addEventListener("click", function () {
+    if (!oauthInfo) { status("Configure CLIENT_ID first (see DEPLOY.md)."); return; }
+    esriId.getCredential(CONFIG.PORTAL_URL + "/sharing", { oAuthPopupConfirmation: false })
+      .then(onSignedIn)
+      .catch(function (e) { console.error(e); status("Sign-in failed: " + (e && e.message)); });
+  });
 
+  // -------- Compliance standard selector (DEMO) --------
+  function fillSelect(sel, items) {
+    sel.innerHTML = "";
+    items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); });
+  }
+  function onFwChange() {
+    var fw = DEMO_STANDARDS[$("fw").value];
+    if (!fw) { fillSelect($("tbl"), ["—"]); fillSelect($("cont"), ["—"]); $("stdout").textContent = "Manual threshold entry below."; return; }
+    fillSelect($("tbl"), Object.keys(fw)); onTblChange();
+  }
+  function onTblChange() {
+    var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return;
+    var tbl = fw[$("tbl").value] || {};
+    fillSelect($("cont"), Object.keys(tbl)); onContChange();
+  }
+  function onContChange() {
+    var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return;
+    var tbl = fw[$("tbl").value] || {};
+    var v = tbl[$("cont").value];
+    if (v == null) { $("stdout").innerHTML = "<b>" + $("cont").value + "</b>: loads from EQuIS"; return; }
+    var mgL = v / 1000.0;
+    $("tc").value = mgL;
+    $("stdout").innerHTML = "<b>" + $("cont").value + "</b> = " + v + " µg/L (" + mgL + " mg/L) " +
+      "<span class='demo'>DEMO</span><br><span class='hint'>set as the plume compliance threshold</span>";
+    run();
+  }
+  fillSelect($("fw"), Object.keys(DEMO_STANDARDS));
+  $("fw").value = "Ontario O.Reg 153/04 — DEMO";
+  $("fw").addEventListener("change", onFwChange);
+  $("tbl").addEventListener("change", onTblChange);
+  $("cont").addEventListener("change", onContChange);
+
+  // -------- map helpers --------
   function drawSource() {
     srcLayer.removeAll();
     srcLayer.add(new Graphic({
@@ -144,7 +252,6 @@ require([
     }));
   }
 
-  // log-scale colour ramp: norm in [0,1] -> [r,g,b]
   var stops = [[43,88,200],[25,176,200],[55,178,77],[245,194,17],[232,64,15]];
   function ramp(n) {
     n = Math.max(0, Math.min(1, n));
@@ -154,7 +261,6 @@ require([
     return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
   }
 
-  // metres offset (east,north) -> lon/lat, given source and flow azimuth
   function toLonLat(xAlong, yTrans, azDeg) {
     var th = azDeg * Math.PI / 180;
     var east  = xAlong * Math.sin(th) + yTrans * Math.cos(th);
@@ -165,7 +271,7 @@ require([
   }
 
   function run() {
-    drawSource(); // draw/refresh source first so it always updates even if the plume errors
+    drawSource();
     var p = {
       Vs: num("Vs"), R: num("R"), ax: num("ax"), ay: num("ay"), az: num("az"),
       lam: num("lam"), k: num("k"), Z: num("Z"),
@@ -181,23 +287,20 @@ require([
     var cv = document.createElement("canvas");
     cv.width = nx; cv.height = ny;
     var ctx = cv.getContext("2d");
-    var img = ctx.createImageData(nx, ny);
+    var imgd = ctx.createImageData(nx, ny);
     for (var iy = 0; iy < ny; iy++) {
       for (var ix = 0; ix < nx; ix++) {
-        // canvas top row (py=0) = +W/2 transverse; grid row 0 = -W/2 -> flip
         var C = g.grid[ny - 1 - iy][ix];
         var idx = (iy * nx + ix) * 4;
-        if (C <= Tc || !isFinite(C)) { img.data[idx + 3] = 0; continue; }
+        if (C <= Tc || !isFinite(C)) { imgd.data[idx + 3] = 0; continue; }
         var n = (Math.log10(C) - logMin) / span;
         var col = ramp(n);
-        img.data[idx] = col[0]; img.data[idx+1] = col[1]; img.data[idx+2] = col[2];
-        img.data[idx+3] = Math.round(255 * (0.40 + 0.50 * Math.max(0, Math.min(1, n))));
+        imgd.data[idx] = col[0]; imgd.data[idx+1] = col[1]; imgd.data[idx+2] = col[2];
+        imgd.data[idx+3] = Math.round(255 * (0.40 + 0.50 * Math.max(0, Math.min(1, n))));
       }
     }
-    ctx.putImageData(img, 0, 0);
+    ctx.putImageData(imgd, 0, 0);
 
-    // four geo corners: source-pixel (px,py) -> model (x,y) -> lon/lat -> Web Mercator
-    // (control points must be in the map's spatial reference, not geographic).
     function corner(xAlong, yTrans) {
       var ll = toLonLat(xAlong, yTrans, azFlow);
       var xy = webMercatorUtils.lngLatToXY(ll[0], ll[1]);
@@ -222,7 +325,6 @@ require([
       return;
     }
 
-    // centerline reach above threshold
     var reach = 0;
     for (var i = 0; i < g.xs.length; i++) if (NATEngine.centerline(g.xs[i], t, p) > Tc) reach = g.xs[i];
     $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = cmax + " mg/L";
@@ -230,9 +332,7 @@ require([
   }
 
   var placing = false;
-  $("place").addEventListener("click", function () {
-    placing = true; status("Click the map to place the source…");
-  });
+  $("place").addEventListener("click", function () { placing = true; status("Click the map to place the source…"); });
   view.on("click", function (e) {
     if (!placing) return;
     placing = false;
@@ -241,6 +341,7 @@ require([
   });
   $("run").addEventListener("click", run);
 
+  onFwChange(); // initialise the standard selector (also sets threshold + draws)
   view.when(function () { drawSource(); status("Ready · set inputs and Run model."); run(); });
 });
 </script>
