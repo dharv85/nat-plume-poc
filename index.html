@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>NAT Plume Modeller — POC</title>
+  <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
+  <style>
+    html, body { margin: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; }
+    #app { display: flex; height: 100%; }
+    #panel { width: 320px; min-width: 320px; overflow-y: auto; background: #f7f8fa;
+             border-right: 1px solid #d8dce1; padding: 14px 16px; box-sizing: border-box; }
+    #map { flex: 1; }
+    h1 { font-size: 16px; margin: 0 0 2px; color: #1b3a5b; }
+    .sub { font-size: 11px; color: #6b7480; margin-bottom: 12px; }
+    fieldset { border: 1px solid #dde1e6; border-radius: 6px; margin: 0 0 12px; padding: 8px 10px; }
+    legend { font-size: 11px; font-weight: 600; color: #41607d; text-transform: uppercase; letter-spacing: .04em; }
+    label { display: block; font-size: 12px; color: #333; margin: 7px 0 2px; }
+    input, select { width: 100%; box-sizing: border-box; padding: 5px 6px; font-size: 12px;
+            border: 1px solid #c6ccd3; border-radius: 4px; }
+    .row { display: flex; gap: 8px; }
+    .row > div { flex: 1; }
+    .hint { font-size: 10px; color: #98a0aa; margin-top: 1px; }
+    button { width: 100%; padding: 9px; font-size: 13px; font-weight: 600; color: #fff;
+             background: #1b6ec2; border: 0; border-radius: 5px; cursor: pointer; margin-top: 4px; }
+    button:hover { background: #155a9e; }
+    #place { background: #4a7; }
+    #place:hover { background: #386; }
+    #legendbox { margin-top: 8px; font-size: 11px; color: #444; }
+    #ramp { height: 12px; border-radius: 3px; margin: 4px 0 2px;
+            background: linear-gradient(90deg,#2b58c8,#19b0c8,#37b24d,#f5c211,#e8400f); }
+    .rl { display: flex; justify-content: space-between; font-size: 10px; color: #777; }
+    #status { font-size: 11px; color: #6b7480; margin-top: 8px; min-height: 14px; }
+    .pill { display:inline-block; background:#eef3f8; color:#41607d; border-radius:10px;
+            padding:1px 7px; font-size:10px; margin-left:4px; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <h1>NAT Plume Modeller <span class="pill">POC</span></h1>
+    <div class="sub">Domenico / BIOSCREEN · metric · validated engine</div>
+
+    <fieldset>
+      <legend>Hydrogeology</legend>
+      <label>Seepage velocity, V<sub>s</sub> (m/yr)</label>
+      <input id="Vs" type="number" value="50" step="1">
+      <label>Retardation factor, R (–)</label>
+      <input id="R" type="number" value="2" step="0.1">
+    </fieldset>
+
+    <fieldset>
+      <legend>Dispersion</legend>
+      <div class="row">
+        <div><label>α<sub>x</sub> (m)</label><input id="ax" type="number" value="10" step="0.5"></div>
+        <div><label>α<sub>y</sub> (m)</label><input id="ay" type="number" value="1" step="0.1"></div>
+        <div><label>α<sub>z</sub> (m)</label><input id="az" type="number" value="0" step="0.1"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Degradation</legend>
+      <label>1st-order decay, λ (1/yr) <span class="hint">0 = no degradation</span></label>
+      <input id="lam" type="number" value="0.1" step="0.05">
+      <label>Source decay constant, k (1/yr)</label>
+      <input id="k" type="number" value="0" step="0.01">
+    </fieldset>
+
+    <fieldset>
+      <legend>Source</legend>
+      <div class="row">
+        <div><label>Width (m)</label><input id="w" type="number" value="20" step="1"></div>
+        <div><label>Thickness Z (m)</label><input id="Z" type="number" value="3" step="0.5"></div>
+      </div>
+      <label>Concentration, C₀ (mg/L)</label>
+      <input id="c0" type="number" value="10" step="0.5">
+    </fieldset>
+
+    <fieldset>
+      <legend>Model domain</legend>
+      <div class="row">
+        <div><label>Sim. time (yr)</label><input id="t" type="number" value="10" step="1"></div>
+        <div><label>Flow azimuth (°)</label><input id="az_flow" type="number" value="90" step="5"></div>
+      </div>
+      <div class="row">
+        <div><label>Length (m)</label><input id="L" type="number" value="400" step="10"></div>
+        <div><label>Width (m)</label><input id="W" type="number" value="220" step="10"></div>
+      </div>
+      <label>Compliance / display threshold (mg/L)</label>
+      <input id="tc" type="number" value="0.005" step="0.001">
+    </fieldset>
+
+    <button id="run">Run model ▶</button>
+    <button id="place">📍 Click map to set source</button>
+
+    <div id="legendbox">
+      <div>Concentration (mg/L), log scale</div>
+      <div id="ramp"></div>
+      <div class="rl"><span id="lmin">thr</span><span id="lmax">C₀</span></div>
+    </div>
+    <div id="status">Loading map…</div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script src="https://js.arcgis.com/4.30/"></script>
+<script src="engine.js"></script>
+<script>
+require([
+  "esri/Map", "esri/views/MapView",
+  "esri/layers/MediaLayer", "esri/layers/support/ImageElement",
+  "esri/layers/support/ControlPointsGeoreference",
+  "esri/layers/support/LocalMediaElementSource",
+  "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/Point",
+  "esri/geometry/support/webMercatorUtils"
+], function (Map, MapView, MediaLayer, ImageElement,
+             ControlPointsGeoreference, LocalMediaElementSource,
+             GraphicsLayer, Graphic, Point, webMercatorUtils) {
+
+  // "osm" is a built-in OpenStreetMap basemap — no API key required (POC).
+  // Production swaps to Esri basemaps served via the user's authenticated AGOL session.
+  var map = new Map({ basemap: "osm" });
+  var srcLayer = new GraphicsLayer();
+  // Explicit LocalMediaElementSource so .elements is a real collection we can update.
+  var plumeSource = new LocalMediaElementSource({ elements: [] });
+  var plumeLayer = new MediaLayer({ source: plumeSource });
+  map.addMany([plumeLayer, srcLayer]);
+
+  // Default source location (Calgary, AB — move it anywhere).
+  var source = { lon: -114.0719, lat: 51.0447 };
+  var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var status = function (m) { $("status").textContent = m; };
+
+  function num(id) { return parseFloat($(id).value); }
+
+  function drawSource() {
+    srcLayer.removeAll();
+    srcLayer.add(new Graphic({
+      geometry: new Point({ longitude: source.lon, latitude: source.lat }),
+      symbol: { type: "simple-marker", style: "diamond", color: [20, 60, 120],
+                size: 11, outline: { color: "white", width: 1.5 } }
+    }));
+  }
+
+  // log-scale colour ramp: norm in [0,1] -> [r,g,b]
+  var stops = [[43,88,200],[25,176,200],[55,178,77],[245,194,17],[232,64,15]];
+  function ramp(n) {
+    n = Math.max(0, Math.min(1, n));
+    var f = n * (stops.length - 1), i = Math.floor(f), t = f - i;
+    if (i >= stops.length - 1) return stops[stops.length - 1];
+    var a = stops[i], b = stops[i + 1];
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+  }
+
+  // metres offset (east,north) -> lon/lat, given source and flow azimuth
+  function toLonLat(xAlong, yTrans, azDeg) {
+    var th = azDeg * Math.PI / 180;
+    var east  = xAlong * Math.sin(th) + yTrans * Math.cos(th);
+    var north = xAlong * Math.cos(th) - yTrans * Math.sin(th);
+    var dLat = north / 111320.0;
+    var dLon = east / (111320.0 * Math.cos(source.lat * Math.PI / 180));
+    return [source.lon + dLon, source.lat + dLat];
+  }
+
+  function run() {
+    drawSource(); // draw/refresh source first so it always updates even if the plume errors
+    var p = {
+      Vs: num("Vs"), R: num("R"), ax: num("ax"), ay: num("ay"), az: num("az"),
+      lam: num("lam"), k: num("k"), Z: num("Z"),
+      zones: [[num("w"), num("c0")]]
+    };
+    var t = num("t"), L = num("L"), W = num("W"), Tc = num("tc"), azFlow = num("az_flow");
+    var nx = 200, ny = 141;
+    var g = NATEngine.grid(t, p, { length: L, width: W, nx: nx, ny: ny });
+
+    var cmax = num("c0");
+    var logMin = Math.log10(Tc), logMax = Math.log10(cmax), span = (logMax - logMin) || 1;
+
+    var cv = document.createElement("canvas");
+    cv.width = nx; cv.height = ny;
+    var ctx = cv.getContext("2d");
+    var img = ctx.createImageData(nx, ny);
+    for (var iy = 0; iy < ny; iy++) {
+      for (var ix = 0; ix < nx; ix++) {
+        // canvas top row (py=0) = +W/2 transverse; grid row 0 = -W/2 -> flip
+        var C = g.grid[ny - 1 - iy][ix];
+        var idx = (iy * nx + ix) * 4;
+        if (C <= Tc || !isFinite(C)) { img.data[idx + 3] = 0; continue; }
+        var n = (Math.log10(C) - logMin) / span;
+        var col = ramp(n);
+        img.data[idx] = col[0]; img.data[idx+1] = col[1]; img.data[idx+2] = col[2];
+        img.data[idx+3] = Math.round(255 * (0.40 + 0.50 * Math.max(0, Math.min(1, n))));
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+
+    // four geo corners: source-pixel (px,py) -> model (x,y) -> lon/lat -> Web Mercator
+    // (control points must be in the map's spatial reference, not geographic).
+    function corner(xAlong, yTrans) {
+      var ll = toLonLat(xAlong, yTrans, azFlow);
+      var xy = webMercatorUtils.lngLatToXY(ll[0], ll[1]);
+      return new Point({ x: xy[0], y: xy[1], spatialReference: { wkid: 3857 } });
+    }
+    try {
+      var cpg = new ControlPointsGeoreference({
+        width: nx, height: ny,
+        controlPoints: [
+          { sourcePoint: { x: 0,  y: 0  }, mapPoint: corner(0,  W / 2) },
+          { sourcePoint: { x: nx, y: 0  }, mapPoint: corner(L,  W / 2) },
+          { sourcePoint: { x: nx, y: ny }, mapPoint: corner(L, -W / 2) },
+          { sourcePoint: { x: 0,  y: ny }, mapPoint: corner(0, -W / 2) }
+        ]
+      });
+      var el = new ImageElement({ image: cv, georeference: cpg, opacity: 0.8 });
+      plumeSource.elements.removeAll();
+      plumeSource.elements.add(el);
+    } catch (err) {
+      console.error("Plume draw failed:", err);
+      status("⚠ Plume draw error: " + err.message + " (see console)");
+      return;
+    }
+
+    // centerline reach above threshold
+    var reach = 0;
+    for (var i = 0; i < g.xs.length; i++) if (NATEngine.centerline(g.xs[i], t, p) > Tc) reach = g.xs[i];
+    $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = cmax + " mg/L";
+    status("Plume drawn · centerline > threshold to ≈ " + Math.round(reach) + " m downgradient");
+  }
+
+  var placing = false;
+  $("place").addEventListener("click", function () {
+    placing = true; status("Click the map to place the source…");
+  });
+  view.on("click", function (e) {
+    if (!placing) return;
+    placing = false;
+    source = { lon: e.mapPoint.longitude, lat: e.mapPoint.latitude };
+    run();
+  });
+  $("run").addEventListener("click", run);
+
+  view.when(function () { drawSource(); status("Ready · set inputs and Run model."); run(); });
+});
+</script>
+</body>
+</html>
