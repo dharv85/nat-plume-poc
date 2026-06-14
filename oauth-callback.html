@@ -2,6 +2,10 @@
 <html>
   <head>
     <script>
+      // W13 (S5 note): this is Esri's official popup callback. The native EB custom-widget path
+      // inherits the session via jimu-core SessionManager and drops OAuth entirely, so this file
+      // is expected to disappear at migration. If OAuth is kept long-term, add an opener-origin
+      // allow-list check before dispatching the auth payload.
       function loadHandler() {
         if (opener) {
           if (location.hash) {

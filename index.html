@@ -4,6 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <title>NAT Plume Modeller — POC</title>
+  <!-- W2 (S3 defense-in-depth) — enable + tune in a BROWSER before production. The ArcGIS SDK
+       needs blob:/worker-src and may need 'unsafe-eval'; uncomment, then loosen ONLY what the
+       console demands. Left disabled here so it can't silently break the app unattended.
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' https://js.arcgis.com; style-src 'self' 'unsafe-inline' https://js.arcgis.com; img-src 'self' data: blob: https://*.arcgisonline.com https://*.tile.openstreetmap.org; connect-src 'self' https://*.arcgis.com https://www.arcgis.com https://*.openstreetmap.org; worker-src 'self' blob:; frame-src https://www.arcgis.com;">
+  -->
+  <!-- W6 (S7 supply chain) — before production: pin the exact SDK patch version (e.g. 4.30.x) and
+       add integrity="sha384-..." crossorigin="anonymous" to the SDK script tag and the stylesheet
+       link below, or bundle the SDK locally. Verify the app still loads after pinning. -->
   <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
   <style>
     html, body { margin: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; }
@@ -184,6 +193,7 @@ require([
 
   var source = { lon: -114.0719, lat: 51.0447 }; // Calgary default; move anywhere
   var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
+  var viewReady = false; // W12: gate run() until the MapView is ready
 
   // -------- Esri OAuth (guarded: only active once a Client ID is configured) --------
   var oauthInfo = null;
@@ -212,7 +222,7 @@ require([
 
   // -------- Compliance standard selector (DEMO) --------
   function fillSelect(sel, items) {
-    sel.innerHTML = "";
+    sel.textContent = ""; // clear options without innerHTML
     items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); });
   }
   function onFwChange() {
@@ -226,14 +236,29 @@ require([
     fillSelect($("cont"), Object.keys(tbl)); onContChange();
   }
   function onContChange() {
+    // W1 (S3): build the readout with textContent/DOM nodes — never innerHTML of data-derived
+    // strings. Today contaminant names come from a fixed object, but Phase 2 makes them
+    // EQuIS/AGOL data written by editors; this keeps the XSS surface closed by construction.
     var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return;
     var tbl = fw[$("tbl").value] || {};
-    var v = tbl[$("cont").value];
-    if (v == null) { $("stdout").innerHTML = "<b>" + $("cont").value + "</b>: loads from EQuIS"; return; }
-    var mgL = v / 1000.0;
+    var name = $("cont").value;
+    var v = tbl[name];
+    var out = $("stdout");
+    out.textContent = "";
+    var b = document.createElement("b");
+    b.textContent = name;
+    out.appendChild(b);
+    if (v == null) { out.appendChild(document.createTextNode(": loads from EQuIS")); return; }
+    var mgL = Number(v) / 1000.0;
     $("tc").value = mgL;
-    $("stdout").innerHTML = "<b>" + $("cont").value + "</b> = " + v + " µg/L (" + mgL + " mg/L) " +
-      "<span class='demo'>DEMO</span><br><span class='hint'>set as the plume compliance threshold</span>";
+    out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
+    var badge = document.createElement("span");
+    badge.className = "demo"; badge.textContent = "DEMO";
+    out.appendChild(badge);
+    out.appendChild(document.createElement("br"));
+    var hint = document.createElement("span");
+    hint.className = "hint"; hint.textContent = "set as the plume compliance threshold";
+    out.appendChild(hint);
     run();
   }
   fillSelect($("fw"), Object.keys(DEMO_STANDARDS));
@@ -261,6 +286,8 @@ require([
     return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
   }
 
+  // W9: azimuth = compass bearing of groundwater FLOW direction (0°=North, 90°=East,
+  // clockwise). xAlong = downgradient distance; yTrans = transverse (plume is symmetric in y).
   function toLonLat(xAlong, yTrans, azDeg) {
     var th = azDeg * Math.PI / 180;
     var east  = xAlong * Math.sin(th) + yTrans * Math.cos(th);
@@ -271,17 +298,31 @@ require([
   }
 
   function run() {
+    if (!viewReady) return;                 // W12: don't draw before the view is ready
     drawSource();
+
+    // W3/W4/W5 — validate inputs before they reach the engine / log-scale colouring
+    var ids = ["Vs","R","ax","ay","az","lam","k","Z","w","c0","t","L","W","tc","az_flow"];
+    for (var ri = 0; ri < ids.length; ri++) {
+      if (!isFinite(num(ids[ri]))) { status("Enter a valid number for the " + ids[ri] + " field."); return; }
+    }
+    if (num("Vs") <= 0 || num("R") <= 0) { status("Vs and R must be greater than 0."); return; }
+    if (num("L") <= 0 || num("W") <= 0 || num("t") < 0) { status("Check domain length / width / time."); return; }
+    var Tc = num("tc");
+    if (Tc <= 0) { status("Compliance threshold must be > 0 mg/L."); return; }
+    var cmax = num("c0");
+    if (cmax <= 0) { status("Source concentration must be > 0 mg/L."); return; }
+    if (Tc >= cmax) { status("Threshold ≥ source concentration — nothing to contour."); return; }
+
     var p = {
       Vs: num("Vs"), R: num("R"), ax: num("ax"), ay: num("ay"), az: num("az"),
       lam: num("lam"), k: num("k"), Z: num("Z"),
       zones: [[num("w"), num("c0")]]
     };
-    var t = num("t"), L = num("L"), W = num("W"), Tc = num("tc"), azFlow = num("az_flow");
+    var t = num("t"), L = num("L"), W = num("W"), azFlow = num("az_flow");
     var nx = 200, ny = 141;
     var g = NATEngine.grid(t, p, { length: L, width: W, nx: nx, ny: ny });
 
-    var cmax = num("c0");
     var logMin = Math.log10(Tc), logMax = Math.log10(cmax), span = (logMax - logMin) || 1;
 
     var cv = document.createElement("canvas");
@@ -328,21 +369,25 @@ require([
     var reach = 0;
     for (var i = 0; i < g.xs.length; i++) if (NATEngine.centerline(g.xs[i], t, p) > Tc) reach = g.xs[i];
     $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = cmax + " mg/L";
-    status("Plume drawn · centerline > threshold to ≈ " + Math.round(reach) + " m downgradient");
+    status("Plume drawn · centerline > threshold to ≈ " + Math.round(reach) + " m downgradient (grid-step resolution)");
   }
 
   var placing = false;
-  $("place").addEventListener("click", function () { placing = true; status("Click the map to place the source…"); });
+  $("place").addEventListener("click", function () {            // W10: toggle so it can be cancelled
+    placing = !placing;
+    status(placing ? "Click the map to place the source… (click the button again to cancel)"
+                   : "Placement cancelled.");
+  });
   view.on("click", function (e) {
-    if (!placing) return;
+    if (!placing || !e.mapPoint) return;                        // W10: guard missing mapPoint
     placing = false;
     source = { lon: e.mapPoint.longitude, lat: e.mapPoint.latitude };
     run();
   });
   $("run").addEventListener("click", run);
 
-  onFwChange(); // initialise the standard selector (also sets threshold + draws)
-  view.when(function () { drawSource(); status("Ready · set inputs and Run model."); run(); });
+  onFwChange(); // initialise the standard selector (sets threshold; run() is gated until viewReady)
+  view.when(function () { viewReady = true; drawSource(); status("Ready · set inputs and Run model."); run(); });
 });
 </script>
 </body>

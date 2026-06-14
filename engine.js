@@ -73,8 +73,11 @@
     var L = opts.length, W = opts.width;
     var nx = opts.nx || 120, ny = opts.ny || 81;
     var xs = [], ys = [], g = [];
-    for (var ix = 0; ix < nx; ix++) xs.push((L * ix) / (nx - 1));
-    for (var iy = 0; iy < ny; iy++) ys.push(-W / 2 + (W * iy) / (ny - 1));
+    // W7: guard nx/ny === 1 (degenerate caller) against divide-by-zero -> NaN coords.
+    var fx = nx > 1 ? 1 / (nx - 1) : 0;
+    var fy = ny > 1 ? 1 / (ny - 1) : 0;
+    for (var ix = 0; ix < nx; ix++) xs.push(L * ix * fx);
+    for (var iy = 0; iy < ny; iy++) ys.push(-W / 2 + W * iy * fy);
     for (var b = 0; b < ny; b++) {
       var row = [];
       for (var a = 0; a < nx; a++) row.push(concentration(xs[a], ys[b], 0.0, t, p));
