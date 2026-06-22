@@ -58,6 +58,12 @@
     <div class="sub">3-D Domenico / BIOSCREEN-AT · metric · engine validated vs reference</div>
 
     <fieldset>
+      <legend>ArcGIS sign-in</legend>
+      <button class="act" id="signin" style="background:#2e7d5b">Sign in to ArcGIS</button>
+      <div id="authstat" style="font-size:11px;color:#41607d;margin-top:6px">Not signed in · running standalone (OSM basemap).</div>
+    </fieldset>
+
+    <fieldset>
       <legend>Solver</legend>
       <div class="seg" id="engSeg">
         <button data-eng="bioscreen" class="on">Domenico</button>
@@ -383,10 +389,24 @@ require([
   $("run").addEventListener("click", run);
   window.addEventListener("resize", function () { if (viewReady) run(); });
 
-  // ---- optional OAuth (non-blocking) ----
+  // ---- Esri OAuth sign-in (non-blocking; demo runs signed-out) ----
+  var oauthInfo = null;
   if (CONFIG.CLIENT_ID) {
-    try { esriId.registerOAuthInfos([new OAuthInfo({ appId: CONFIG.CLIENT_ID, popup: true, portalUrl: CONFIG.PORTAL_URL })]); } catch (e) {}
+    oauthInfo = new OAuthInfo({ appId: CONFIG.CLIENT_ID, popup: true, portalUrl: CONFIG.PORTAL_URL });
+    esriId.registerOAuthInfos([oauthInfo]);
+    esriId.checkSignInStatus(CONFIG.PORTAL_URL + "/sharing").then(onSignedIn).catch(function () {});
+  } else { $("signin").disabled = true; $("authstat").textContent = "Sign-in not configured."; }
+  function onSignedIn(cred) {
+    $("authstat").textContent = "Signed in: " + ((cred && cred.userId) ? cred.userId : "ArcGIS user");
+    $("signin").textContent = "Signed in ✓"; $("signin").disabled = true;
+    try { map.basemap = "arcgis/topographic"; } catch (e) {}
+    status("Signed in to ArcGIS — org layers & EQuIS standards available in the full build.");
   }
+  $("signin").addEventListener("click", function () {
+    if (!oauthInfo) return;
+    esriId.getCredential(CONFIG.PORTAL_URL + "/sharing", { oAuthPopupConfirmation: false })
+      .then(onSignedIn).catch(function (e) { status("Sign-in failed: " + (e && e.message)); });
+  });
 
   onFw();
   view.when(function () { viewReady = true; drawSource(); status("Ready."); run(); });
