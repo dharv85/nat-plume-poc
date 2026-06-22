@@ -3,391 +3,393 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-  <title>NAT Plume Modeller — POC</title>
-  <!-- W2 (S3 defense-in-depth) — enable + tune in a BROWSER before production. The ArcGIS SDK
-       needs blob:/worker-src and may need 'unsafe-eval'; uncomment, then loosen ONLY what the
-       console demands. Left disabled here so it can't silently break the app unattended.
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' https://js.arcgis.com; style-src 'self' 'unsafe-inline' https://js.arcgis.com; img-src 'self' data: blob: https://*.arcgisonline.com https://*.tile.openstreetmap.org; connect-src 'self' https://*.arcgis.com https://www.arcgis.com https://*.openstreetmap.org; worker-src 'self' blob:; frame-src https://www.arcgis.com;">
-  -->
-  <!-- W6 (S7 supply chain) — before production: pin the exact SDK patch version (e.g. 4.30.x) and
-       add integrity="sha384-..." crossorigin="anonymous" to the SDK script tag and the stylesheet
-       link below, or bundle the SDK locally. Verify the app still loads after pinning. -->
+  <title>SLR Natural Attenuation Modeller</title>
   <link rel="stylesheet" href="https://js.arcgis.com/4.30/esri/themes/light/main.css" />
   <style>
-    html, body { margin: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; }
+    html, body { margin: 0; height: 100%; font-family: "Segoe UI", Arial, sans-serif; color: #222; }
     #app { display: flex; height: 100%; }
-    #panel { width: 330px; min-width: 330px; overflow-y: auto; background: #f7f8fa;
-             border-right: 1px solid #d8dce1; padding: 14px 16px; box-sizing: border-box; }
-    #map { flex: 1; }
-    h1 { font-size: 16px; margin: 0 0 2px; color: #1b3a5b; }
-    .sub { font-size: 11px; color: #6b7480; margin-bottom: 12px; }
-    fieldset { border: 1px solid #dde1e6; border-radius: 6px; margin: 0 0 12px; padding: 8px 10px; }
-    legend { font-size: 11px; font-weight: 600; color: #41607d; text-transform: uppercase; letter-spacing: .04em; }
-    label { display: block; font-size: 12px; color: #333; margin: 7px 0 2px; }
-    input, select { width: 100%; box-sizing: border-box; padding: 5px 6px; font-size: 12px;
-            border: 1px solid #c6ccd3; border-radius: 4px; }
-    .row { display: flex; gap: 8px; }
-    .row > div { flex: 1; }
-    .hint { font-size: 10px; color: #98a0aa; margin-top: 1px; }
-    button { width: 100%; padding: 9px; font-size: 13px; font-weight: 600; color: #fff;
-             background: #1b6ec2; border: 0; border-radius: 5px; cursor: pointer; margin-top: 4px; }
-    button:hover { background: #155a9e; }
-    button:disabled { background: #b9c2cc; cursor: not-allowed; }
-    #place { background: #4a7; }
-    #place:hover { background: #386; }
-    #signin { background: #2e7d5b; }
-    #signin:hover { background: #246048; }
-    #authstat { font-size: 11px; color: #41607d; margin-top: 6px; }
-    #legendbox { margin-top: 8px; font-size: 11px; color: #444; }
-    #ramp { height: 12px; border-radius: 3px; margin: 4px 0 2px;
-            background: linear-gradient(90deg,#2b58c8,#19b0c8,#37b24d,#f5c211,#e8400f); }
-    .rl { display: flex; justify-content: space-between; font-size: 10px; color: #777; }
-    #status { font-size: 11px; color: #6b7480; margin-top: 8px; min-height: 14px; }
-    .pill { display:inline-block; background:#eef3f8; color:#41607d; border-radius:10px;
-            padding:1px 7px; font-size:10px; margin-left:4px; }
+    #panel { width: 340px; min-width: 340px; overflow-y: auto; background: #f6f8fa;
+             border-right: 1px solid #d8dce1; padding: 12px 14px; box-sizing: border-box; }
+    #right { flex: 1; display: flex; flex-direction: column; }
+    #map { flex: 1 1 60%; }
+    #charts { flex: 0 0 40%; border-top: 1px solid #d8dce1; background: #fff; display: flex; }
+    #chartwrap { flex: 1; padding: 8px 12px; box-sizing: border-box; overflow: hidden; }
+    h1 { font-size: 15px; margin: 0 0 1px; color: #1b3a5b; }
+    .sub { font-size: 10.5px; color: #6b7480; margin-bottom: 10px; }
+    fieldset { border: 1px solid #dde1e6; border-radius: 6px; margin: 0 0 10px; padding: 7px 9px; }
+    legend { font-size: 10.5px; font-weight: 700; color: #41607d; text-transform: uppercase; letter-spacing: .03em; }
+    label { display: block; font-size: 11.5px; color: #333; margin: 6px 0 2px; }
+    input, select { width: 100%; box-sizing: border-box; padding: 4px 6px; font-size: 12px;
+            border: 1px solid #c6ccd3; border-radius: 4px; background: #fff; }
+    .row { display: flex; gap: 7px; } .row > div { flex: 1; }
+    .hint { font-size: 9.5px; color: #98a0aa; margin-top: 1px; }
+    .seg { display: flex; border: 1px solid #c6ccd3; border-radius: 5px; overflow: hidden; margin-top: 3px; }
+    .seg button { flex: 1; border: 0; background: #fff; color: #41607d; font-size: 11px; font-weight: 600;
+            padding: 6px 4px; cursor: pointer; }
+    .seg button.on { background: #1b6ec2; color: #fff; }
+    button.act { width: 100%; padding: 9px; font-size: 13px; font-weight: 700; color: #fff;
+             background: #1b6ec2; border: 0; border-radius: 5px; cursor: pointer; margin-top: 5px; }
+    button.act:hover { background: #155a9e; }
+    #place { background: #4a7; } #place:hover { background: #386; }
+    .chk { display: flex; align-items: center; gap: 6px; font-size: 11.5px; margin-top: 7px; }
+    .chk input { width: auto; }
+    #derived { font-size: 11px; color: #2a5; margin-top: 5px; line-height: 1.45; }
     .demo { display:inline-block; background:#fff3cd; color:#8a6d00; border:1px solid #f0d68a;
-            border-radius:4px; padding:1px 6px; font-size:9px; font-weight:600; }
-    #stdout { font-size: 11px; color: #333; margin-top: 6px; line-height: 1.4; }
+            border-radius:4px; padding:0 5px; font-size:9px; font-weight:700; }
+    .pill { display:inline-block; background:#eef3f8; color:#41607d; border-radius:10px;
+            padding:1px 7px; font-size:9.5px; margin-left:4px; }
+    #stdout { font-size: 11px; margin-top: 5px; line-height: 1.4; }
+    #status { font-size: 10.5px; color: #6b7480; margin-top: 8px; min-height: 14px; }
+    #readout { font-size: 11.5px; color: #1b3a5b; margin: 2px 0 6px; font-weight: 600; }
+    #legendbox { margin-top: 7px; font-size: 10.5px; color: #444; }
+    #ramp { height: 11px; border-radius: 3px; margin: 3px 0 1px;
+            background: linear-gradient(90deg,#2b58c8,#19b0c8,#37b24d,#f5c211,#e8400f); }
+    .rl { display: flex; justify-content: space-between; font-size: 9.5px; color: #777; }
+    canvas#cl { width: 100%; height: 100%; display: block; }
+    #leg { font-size: 10.5px; color: #444; padding: 2px 0 0 2px; }
+    #leg span { display:inline-block; margin-right:10px; }
+    #leg i { display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:3px; }
   </style>
 </head>
 <body>
 <div id="app">
   <div id="panel">
-    <h1>NAT Plume Modeller <span class="pill">POC</span></h1>
-    <div class="sub">Domenico / BIOSCREEN · metric · validated engine</div>
+    <h1>SLR Natural Attenuation Modeller <span class="pill">PREVIEW</span></h1>
+    <div class="sub">3-D Domenico / BIOSCREEN-AT · metric · engine validated vs reference</div>
 
     <fieldset>
-      <legend>ArcGIS sign-in</legend>
-      <button id="signin">Sign in to ArcGIS</button>
-      <div id="authstat">Not signed in · running standalone (OSM basemap).</div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Hydrogeology</legend>
-      <label>Seepage velocity, V<sub>s</sub> (m/yr)</label>
-      <input id="Vs" type="number" value="50" step="1">
-      <label>Retardation factor, R (–)</label>
-      <input id="R" type="number" value="2" step="0.1">
-    </fieldset>
-
-    <fieldset>
-      <legend>Dispersion</legend>
-      <div class="row">
-        <div><label>α<sub>x</sub> (m)</label><input id="ax" type="number" value="10" step="0.5"></div>
-        <div><label>α<sub>y</sub> (m)</label><input id="ay" type="number" value="1" step="0.1"></div>
-        <div><label>α<sub>z</sub> (m)</label><input id="az" type="number" value="0" step="0.1"></div>
+      <legend>Solver</legend>
+      <div class="seg" id="engSeg">
+        <button data-eng="bioscreen" class="on">Domenico</button>
+        <button data-eng="bioscreen_at">BIOSCREEN-AT (exact)</button>
+      </div>
+      <div class="hint">Exact 3-D solution removes the Domenico approximation off-axis &amp; near source.</div>
+      <div class="seg" id="modeSeg" style="margin-top:7px">
+        <button data-mode="steady" class="on">Steady-state</button>
+        <button data-mode="transient">Transient</button>
+      </div>
+      <div id="timeWrap" style="display:none">
+        <label>Simulation time (yr)</label>
+        <input id="t" type="number" value="20" step="1" min="0">
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Degradation</legend>
-      <label>1st-order decay, λ (1/yr) <span class="hint">0 = no degradation</span></label>
-      <input id="lam" type="number" value="0.1" step="0.05">
-      <label>Source decay constant, k (1/yr)</label>
-      <input id="k" type="number" value="0" step="0.01">
+      <legend>Contaminant</legend>
+      <label>Substance <span class="hint">(BC Protocol 28 DB → R, half-life)</span></label>
+      <select id="sub"></select>
+      <div class="row">
+        <div><label>f<sub>oc</sub> (–)</label><input id="foc" type="number" value="0.005" step="0.001"></div>
+        <div><label>pH</label><input id="pH" type="number" value="6.5" step="0.1"></div>
+      </div>
+      <div id="derived"></div>
+      <div class="chk"><input type="checkbox" id="chain"><label for="chain" style="margin:0">Chlorinated decay chain (PCE→TCE→cis-DCE→VC→ethene)</label></div>
+      <div class="hint" id="chainNote" style="display:none">Source = PCE at C₀. Daughters (incl. VC) grow in downgradient — a single-parent model misses them.</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Hydrogeology &amp; dispersion</legend>
+      <label>Seepage velocity, v (m/yr)</label>
+      <input id="v" type="number" value="30" step="1">
+      <div class="row">
+        <div><label>α<sub>x</sub> (m)</label><input id="ax" type="number" value="10" step="0.5"></div>
+        <div><label>α<sub>y</sub> (m)</label><input id="ay" type="number" value="1" step="0.1"></div>
+        <div><label>α<sub>z</sub> (m)</label><input id="az" type="number" value="0.1" step="0.05"></div>
+      </div>
     </fieldset>
 
     <fieldset>
       <legend>Source</legend>
       <div class="row">
-        <div><label>Width (m)</label><input id="w" type="number" value="20" step="1"></div>
-        <div><label>Thickness Z (m)</label><input id="Z" type="number" value="3" step="0.5"></div>
+        <div><label>C₀ (mg/L)</label><input id="c0" type="number" value="10" step="0.5"></div>
+        <div><label>Width Y (m)</label><input id="Y" type="number" value="20" step="1"></div>
+        <div><label>Thick. Z (m)</label><input id="Z" type="number" value="4" step="0.5"></div>
       </div>
-      <label>Concentration, C₀ (mg/L)</label>
-      <input id="c0" type="number" value="10" step="0.5">
+      <div class="chk"><input type="checkbox" id="wt"><label for="wt" style="margin:0">Source at water table (reflecting)</label></div>
     </fieldset>
 
     <fieldset>
       <legend>Compliance standard <span class="demo">DEMO</span></legend>
-      <label>Framework / guideline</label>
-      <select id="fw"></select>
-      <label>Table / condition</label>
-      <select id="tbl"></select>
-      <label>Contaminant</label>
-      <select id="cont"></select>
+      <label>Framework</label><select id="fw"></select>
+      <label>Table / condition</label><select id="tbl"></select>
+      <label>Analyte</label><select id="cont"></select>
       <div id="stdout"></div>
-      <div class="hint">Illustrative values only. Live, authoritative standards load from
-        SLR's EQuIS library after sign-in (never stored in this public app).</div>
+      <div class="hint">Illustrative values. Authoritative standards load from SLR EQuIS (never in this app).</div>
     </fieldset>
 
     <fieldset>
-      <legend>Model domain</legend>
+      <legend>Map domain</legend>
       <div class="row">
-        <div><label>Sim. time (yr)</label><input id="t" type="number" value="10" step="1"></div>
-        <div><label>Flow azimuth (°)</label><input id="az_flow" type="number" value="90" step="5"></div>
-      </div>
-      <div class="row">
+        <div><label>Flow azimuth (°)</label><input id="azf" type="number" value="90" step="5"></div>
         <div><label>Length (m)</label><input id="L" type="number" value="400" step="10"></div>
-        <div><label>Width (m)</label><input id="W" type="number" value="220" step="10"></div>
+        <div><label>Width (m)</label><input id="W" type="number" value="240" step="10"></div>
       </div>
-      <label>Compliance / display threshold (mg/L) <span class="hint">auto-filled from standard; editable</span></label>
+      <label>Display / compliance threshold (mg/L)</label>
       <input id="tc" type="number" value="0.005" step="0.001">
     </fieldset>
 
-    <button id="run">Run model ▶</button>
-    <button id="place">📍 Click map to set source</button>
+    <button class="act" id="run">Run model ▶</button>
+    <button class="act" id="place">📍 Click map to set source</button>
 
     <div id="legendbox">
-      <div>Concentration (mg/L), log scale</div>
+      <div>Plan-view concentration (mg/L, log)</div>
       <div id="ramp"></div>
       <div class="rl"><span id="lmin">thr</span><span id="lmax">C₀</span></div>
     </div>
-    <div id="status">Loading map…</div>
+    <div id="status">Loading…</div>
   </div>
-  <div id="map"></div>
+
+  <div id="right">
+    <div id="map"></div>
+    <div id="charts"><div id="chartwrap">
+      <div id="readout"></div>
+      <canvas id="cl"></canvas>
+      <div id="leg"></div>
+    </div></div>
+  </div>
 </div>
 
 <script>
-  // ===========================================================================
-  // CONFIG — Esri OAuth. Dan: after registering the OAuth app in AGOL, paste the
-  // Client ID below. Until then, sign-in is disabled and the app runs standalone.
-  // The Client ID is NOT a secret (public OAuth client + PKCE) — safe in client code.
-  // See DEPLOY.md "Esri sign-in setup".
-  // ===========================================================================
-  var CONFIG = {
-    CLIENT_ID: "Ex0iH1kCIRUC31dk",                  // OAuth app Client ID (public client + PKCE — safe)
-    PORTAL_URL: "https://slr-pro.maps.arcgis.com"   // SLR Canada AGOL org (where the app is registered)
-  };
-
-  // DEMO compliance standards (µg/L). ILLUSTRATIVE ONLY — not authoritative.
-  // Real values come from EQuIS (secured AGOL table) after sign-in; never hard-coded here.
+  // OAuth (optional; demo runs fine signed-out). Client ID registered in SLR Canada org.
+  var CONFIG = { CLIENT_ID: "Ex0iH1kCIRUC31dk", PORTAL_URL: "https://slr-pro.maps.arcgis.com" };
+  // DEMO compliance standards (µg/L) — illustrative only; real values come from EQuIS.
   var DEMO_STANDARDS = {
     "(manual entry)": null,
     "Ontario O.Reg 153/04 — DEMO": {
-      "Table 2 — Potable GW": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "PHC F3": 500, "PHC F4": 500 },
-      "Table 3 — Non-Potable GW": { "Benzene": 44, "Ethylbenzene": 230, "PHC F3": 500, "PHC F4": 500 }
-    },
-    "CCME 2006 — DEMO": {
-      "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 }
-    }
+      "Table 2 — Potable GW": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5, "Tetrachloroethylene": 30 },
+      "Table 3 — Non-Potable GW": { "Benzene": 44, "Ethylbenzene": 230, "Trichloroethylene": 50 } },
+    "CCME 2006 — DEMO": { "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 } }
   };
+  // chlorinated chain defaults (yr)
+  var CHAIN_HL = { PCE: 5.0, TCE: 3.0, "cis-DCE": 2.0, VC: 1.0 };
 </script>
 <script src="https://js.arcgis.com/4.30/"></script>
-<script src="engine.js"></script>
+<script src="nat_engine.js"></script>
 <script>
 require([
-  "esri/Map", "esri/views/MapView",
-  "esri/layers/MediaLayer", "esri/layers/support/ImageElement",
-  "esri/layers/support/ControlPointsGeoreference",
-  "esri/layers/support/LocalMediaElementSource",
-  "esri/layers/GraphicsLayer", "esri/Graphic", "esri/geometry/Point",
-  "esri/geometry/support/webMercatorUtils",
+  "esri/Map", "esri/views/MapView", "esri/layers/MediaLayer",
+  "esri/layers/support/ImageElement", "esri/layers/support/ControlPointsGeoreference",
+  "esri/layers/support/LocalMediaElementSource", "esri/layers/GraphicsLayer",
+  "esri/Graphic", "esri/geometry/Point", "esri/geometry/support/webMercatorUtils",
   "esri/identity/OAuthInfo", "esri/identity/IdentityManager"
-], function (Map, MapView, MediaLayer, ImageElement,
-             ControlPointsGeoreference, LocalMediaElementSource,
-             GraphicsLayer, Graphic, Point, webMercatorUtils,
+], function (Map, MapView, MediaLayer, ImageElement, ControlPointsGeoreference,
+             LocalMediaElementSource, GraphicsLayer, Graphic, Point, webMercatorUtils,
              OAuthInfo, esriId) {
 
   var $ = function (id) { return document.getElementById(id); };
   var status = function (m) { $("status").textContent = m; };
-  function num(id) { return parseFloat($(id).value); }
+  var num = function (id) { return parseFloat($(id).value); };
+  var engine = "bioscreen", mode = "steady";
 
-  // "osm" is a built-in OpenStreetMap basemap — no API key, works signed-out (POC).
-  // After sign-in we switch to an Esri basemap to prove the authenticated session.
+  // ---- load substance DB, populate picker ----
+  fetch("substances.json").then(function (r) { return r.json(); }).then(function (db) {
+    NATEngine.setSubstanceDB(db);
+    var names = Object.keys(db.substances).sort();
+    names.unshift("(manual: R & half-life below)");
+    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; $("sub").appendChild(o); });
+    $("sub").value = "Benzene";
+    onContaminant();
+  }).catch(function (e) { status("Substance DB load failed: " + e.message); });
+
+  // manual R / half-life inputs appear only in manual mode
+  var manualR = 2.0, manualHL = 2.0;
+  function onContaminant() {
+    var name = $("sub").value, d = $("derived");
+    if (name.indexOf("manual") === 0) {
+      d.textContent = "Manual: R = " + manualR + ", half-life = " + manualHL + " yr";
+      return;
+    }
+    try {
+      var R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH"));
+      var hl = NATEngine.halfLifeYears(name, "sat");
+      d.textContent = "";
+      d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr")));
+    } catch (e) { d.textContent = e.message; }
+  }
+  ["sub", "foc", "pH"].forEach(function (id) { $(id).addEventListener("change", function () { onContaminant(); run(); }); });
+
+  // segmented toggles
+  Array.prototype.forEach.call($("engSeg").children, function (b) {
+    b.addEventListener("click", function () {
+      engine = b.getAttribute("data-eng");
+      Array.prototype.forEach.call($("engSeg").children, function (x) { x.classList.toggle("on", x === b); });
+      run();
+    });
+  });
+  Array.prototype.forEach.call($("modeSeg").children, function (b) {
+    b.addEventListener("click", function () {
+      mode = b.getAttribute("data-mode");
+      Array.prototype.forEach.call($("modeSeg").children, function (x) { x.classList.toggle("on", x === b); });
+      $("timeWrap").style.display = (mode === "transient") ? "block" : "none";
+      run();
+    });
+  });
+  $("t").addEventListener("change", run);
+  $("chain").addEventListener("change", function () { $("chainNote").style.display = $("chain").checked ? "block" : "none"; run(); });
+  ["v","ax","ay","az","c0","Y","Z","wt","azf","L","W","tc"].forEach(function (id) { $(id).addEventListener("change", run); });
+
+  // ---- build PlumeModel from inputs ----
+  function buildModel() {
+    var name = $("sub").value, R, hl;
+    if (name.indexOf("manual") === 0) { R = manualR; hl = manualHL; }
+    else { R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH")); hl = NATEngine.halfLifeYears(name, "sat"); }
+    return { C0: num("c0"), v: num("v"), alpha_x: num("ax"), alpha_y: num("ay"), alpha_z: num("az"),
+      Y: num("Y"), Z: num("Z"), R: R, half_life_yr: hl,
+      water_table_source: $("wt").checked };
+  }
+  function tVal() { return mode === "transient" ? num("t") : null; }
+
+  // ---- map setup ----
   var map = new Map({ basemap: "osm" });
   var srcLayer = new GraphicsLayer();
   var plumeSource = new LocalMediaElementSource({ elements: [] });
   var plumeLayer = new MediaLayer({ source: plumeSource });
   map.addMany([plumeLayer, srcLayer]);
-
-  var source = { lon: -114.0719, lat: 51.0447 }; // Calgary default; move anywhere
+  var source = { lon: -114.0719, lat: 51.0447 };
   var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
-  var viewReady = false; // W12: gate run() until the MapView is ready
+  var viewReady = false;
 
-  // -------- Esri OAuth (guarded: only active once a Client ID is configured) --------
-  var oauthInfo = null;
-  if (CONFIG.CLIENT_ID) {
-    oauthInfo = new OAuthInfo({ appId: CONFIG.CLIENT_ID, popup: true, portalUrl: CONFIG.PORTAL_URL });
-    esriId.registerOAuthInfos([oauthInfo]);
-    esriId.checkSignInStatus(CONFIG.PORTAL_URL + "/sharing").then(onSignedIn).catch(function () {});
-  } else {
-    $("signin").disabled = true;
-    $("authstat").textContent = "Sign-in not configured yet (no Client ID). Runs standalone.";
-  }
-
-  function onSignedIn(cred) {
-    var user = (cred && cred.userId) ? cred.userId : "ArcGIS user";
-    $("authstat").textContent = "Signed in: " + user;
-    $("signin").textContent = "Signed in ✓"; $("signin").disabled = true;
-    try { map.basemap = "arcgis/topographic"; } catch (e) {}
-    status("Signed in to ArcGIS — org layers & EQuIS standards available in the full build.");
-  }
-  $("signin").addEventListener("click", function () {
-    if (!oauthInfo) { status("Configure CLIENT_ID first (see DEPLOY.md)."); return; }
-    esriId.getCredential(CONFIG.PORTAL_URL + "/sharing", { oAuthPopupConfirmation: false })
-      .then(onSignedIn)
-      .catch(function (e) { console.error(e); status("Sign-in failed: " + (e && e.message)); });
-  });
-
-  // -------- Compliance standard selector (DEMO) --------
-  function fillSelect(sel, items) {
-    sel.textContent = ""; // clear options without innerHTML
-    items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); });
-  }
-  function onFwChange() {
-    var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { fillSelect($("tbl"), ["—"]); fillSelect($("cont"), ["—"]); $("stdout").textContent = "Manual threshold entry below."; return; }
-    fillSelect($("tbl"), Object.keys(fw)); onTblChange();
-  }
-  function onTblChange() {
-    var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return;
-    var tbl = fw[$("tbl").value] || {};
-    fillSelect($("cont"), Object.keys(tbl)); onContChange();
-  }
-  function onContChange() {
-    // W1 (S3): build the readout with textContent/DOM nodes — never innerHTML of data-derived
-    // strings. Today contaminant names come from a fixed object, but Phase 2 makes them
-    // EQuIS/AGOL data written by editors; this keeps the XSS surface closed by construction.
-    var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return;
-    var tbl = fw[$("tbl").value] || {};
-    var name = $("cont").value;
-    var v = tbl[name];
-    var out = $("stdout");
-    out.textContent = "";
-    var b = document.createElement("b");
-    b.textContent = name;
-    out.appendChild(b);
-    if (v == null) { out.appendChild(document.createTextNode(": loads from EQuIS")); return; }
-    var mgL = Number(v) / 1000.0;
-    $("tc").value = mgL;
-    out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
-    var badge = document.createElement("span");
-    badge.className = "demo"; badge.textContent = "DEMO";
-    out.appendChild(badge);
-    out.appendChild(document.createElement("br"));
-    var hint = document.createElement("span");
-    hint.className = "hint"; hint.textContent = "set as the plume compliance threshold";
-    out.appendChild(hint);
-    run();
-  }
-  fillSelect($("fw"), Object.keys(DEMO_STANDARDS));
-  $("fw").value = "Ontario O.Reg 153/04 — DEMO";
-  $("fw").addEventListener("change", onFwChange);
-  $("tbl").addEventListener("change", onTblChange);
-  $("cont").addEventListener("change", onContChange);
-
-  // -------- map helpers --------
   function drawSource() {
     srcLayer.removeAll();
-    srcLayer.add(new Graphic({
-      geometry: new Point({ longitude: source.lon, latitude: source.lat }),
-      symbol: { type: "simple-marker", style: "diamond", color: [20, 60, 120],
-                size: 11, outline: { color: "white", width: 1.5 } }
-    }));
+    srcLayer.add(new Graphic({ geometry: new Point({ longitude: source.lon, latitude: source.lat }),
+      symbol: { type: "simple-marker", style: "diamond", color: [20,60,120], size: 11, outline: { color: "white", width: 1.5 } } }));
   }
-
   var stops = [[43,88,200],[25,176,200],[55,178,77],[245,194,17],[232,64,15]];
-  function ramp(n) {
-    n = Math.max(0, Math.min(1, n));
-    var f = n * (stops.length - 1), i = Math.floor(f), t = f - i;
-    if (i >= stops.length - 1) return stops[stops.length - 1];
-    var a = stops[i], b = stops[i + 1];
-    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
-  }
-
-  // W9: azimuth = compass bearing of groundwater FLOW direction (0°=North, 90°=East,
-  // clockwise). xAlong = downgradient distance; yTrans = transverse (plume is symmetric in y).
+  function ramp(n) { n = Math.max(0, Math.min(1, n)); var f = n*(stops.length-1), i = Math.floor(f), t = f-i;
+    if (i >= stops.length-1) return stops[stops.length-1]; var a = stops[i], b = stops[i+1];
+    return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]; }
   function toLonLat(xAlong, yTrans, azDeg) {
-    var th = azDeg * Math.PI / 180;
-    var east  = xAlong * Math.sin(th) + yTrans * Math.cos(th);
-    var north = xAlong * Math.cos(th) - yTrans * Math.sin(th);
-    var dLat = north / 111320.0;
-    var dLon = east / (111320.0 * Math.cos(source.lat * Math.PI / 180));
-    return [source.lon + dLon, source.lat + dLat];
+    var th = azDeg*Math.PI/180;
+    var east = xAlong*Math.sin(th) + yTrans*Math.cos(th), north = xAlong*Math.cos(th) - yTrans*Math.sin(th);
+    return [source.lon + east/(111320*Math.cos(source.lat*Math.PI/180)), source.lat + north/111320];
   }
 
+  // ---- compliance standard selector ----
+  function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); }); }
+  function onFw() { var fw = DEMO_STANDARDS[$("fw").value];
+    if (!fw) { fillSelect($("tbl"), ["—"]); fillSelect($("cont"), ["—"]); $("stdout").textContent = "Manual threshold below."; return; }
+    fillSelect($("tbl"), Object.keys(fw)); onTbl(); }
+  function onTbl() { var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return; fillSelect($("cont"), Object.keys(fw[$("tbl").value] || {})); onCont(); }
+  function onCont() { var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return; var v = (fw[$("tbl").value]||{})[$("cont").value];
+    var out = $("stdout"); out.textContent = ""; var b = document.createElement("b"); b.textContent = $("cont").value; out.appendChild(b);
+    if (v == null) { out.appendChild(document.createTextNode(": —")); return; }
+    var mgL = Number(v)/1000; $("tc").value = mgL;
+    out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
+    var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "DEMO"; out.appendChild(badge);
+    run(); }
+  fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "Ontario O.Reg 153/04 — DEMO";
+  $("fw").addEventListener("change", onFw); $("tbl").addEventListener("change", onTbl); $("cont").addEventListener("change", onCont);
+
+  // ---- centerline chart (canvas, log-y) ----
+  function plotChart(xs, series, Tc, L, C0) {
+    var cv = $("cl"), dpr = window.devicePixelRatio || 1;
+    var w = cv.clientWidth, h = cv.clientHeight; cv.width = w*dpr; cv.height = h*dpr;
+    var g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+    var ml = 46, mr = 10, mt = 8, mb = 22, pw = w-ml-mr, ph = h-mt-mb;
+    var ymax = C0, ymin = Math.max(Tc/10, C0*1e-7);
+    var lyMax = Math.log10(ymax), lyMin = Math.log10(ymin);
+    function px(x) { return ml + (x/L)*pw; }
+    function py(c) { c = Math.max(c, ymin); return mt + (1 - (Math.log10(c)-lyMin)/(lyMax-lyMin))*ph; }
+    g.strokeStyle = "#e3e7ec"; g.fillStyle = "#888"; g.font = "10px Segoe UI"; g.lineWidth = 1;
+    for (var d = Math.ceil(lyMin); d <= lyMax; d++) { var yy = py(Math.pow(10,d)); g.beginPath(); g.moveTo(ml,yy); g.lineTo(w-mr,yy); g.stroke();
+      g.fillText("1e"+d, 3, yy+3); }
+    for (var xt = 0; xt <= L+1; xt += L/4) { var xx = px(xt); g.strokeStyle="#eef1f4"; g.beginPath(); g.moveTo(xx,mt); g.lineTo(xx,mt+ph); g.stroke();
+      g.fillStyle="#888"; g.fillText(Math.round(xt)+"m", xx-10, h-6); }
+    // threshold line
+    if (Tc > ymin) { var ty = py(Tc); g.strokeStyle = "#d22"; g.setLineDash([4,3]); g.beginPath(); g.moveTo(ml,ty); g.lineTo(w-mr,ty); g.stroke(); g.setLineDash([]);
+      g.fillStyle = "#d22"; g.fillText("threshold", w-mr-54, ty-3); }
+    series.forEach(function (s) { g.strokeStyle = s.color; g.lineWidth = 2; g.beginPath();
+      for (var i = 0; i < xs.length; i++) { var X = px(xs[i]), Y = py(s.values[i]); if (i===0) g.moveTo(X,Y); else g.lineTo(X,Y); } g.stroke(); });
+    // legend
+    var leg = $("leg"); leg.textContent = "";
+    series.forEach(function (s) { var sp = document.createElement("span"); var i = document.createElement("i"); i.style.background = s.color; sp.appendChild(i); sp.appendChild(document.createTextNode(s.name)); leg.appendChild(sp); });
+  }
+
+  // ---- main run ----
   function run() {
-    if (!viewReady) return;                 // W12: don't draw before the view is ready
+    if (!viewReady) return;
     drawSource();
+    var p, Tc = num("tc"), L = num("L"), W = num("W"), azf = num("azf"), t = tVal();
+    if (!isFinite(Tc) || Tc <= 0) { status("Threshold must be > 0."); return; }
+    try { p = buildModel(); } catch (e) { status(e.message); return; }
+    if (!isFinite(p.v) || p.v <= 0 || !isFinite(p.R) || p.R <= 0) { status("Check velocity / contaminant."); return; }
+    var C0 = p.C0;
+    var nx = 200, ny = 140;
+    var xs = []; for (var i = 0; i < nx; i++) xs.push((L*i)/(nx-1));
+    var ys = []; for (var j = 0; j < ny; j++) ys.push(-W/2 + (W*j)/(ny-1));
+    var chainOn = $("chain").checked;
 
-    // W3/W4/W5 — validate inputs before they reach the engine / log-scale colouring
-    var ids = ["Vs","R","ax","ay","az","lam","k","Z","w","c0","t","L","W","tc","az_flow"];
-    for (var ri = 0; ri < ids.length; ri++) {
-      if (!isFinite(num(ids[ri]))) { status("Enter a valid number for the " + ids[ri] + " field."); return; }
+    // ----- map grid (fast Domenico) -----
+    var grid, chain;
+    if (chainOn) {
+      chain = NATEngine.chlorinatedEtheneChain(CHAIN_HL, { PCE: C0 });
+      var pBase = { C0: 1, v: p.v, alpha_x: p.alpha_x, alpha_y: p.alpha_y, alpha_z: p.alpha_z, Y: p.Y, Z: p.Z, R: p.R, water_table_source: p.water_table_source };
+      grid = ys.map(function (yj) { return xs.map(function (xi) { var c = NATEngine.chainConcentration(chain, pBase, xi, yj, 0, t, "bioscreen"); return c.PCE + c.TCE + c["cis-DCE"] + c.VC; }); });
+    } else {
+      grid = NATEngine.planView(p, xs, ys, 0, t, "bioscreen"); // fast
     }
-    if (num("Vs") <= 0 || num("R") <= 0) { status("Vs and R must be greater than 0."); return; }
-    if (num("L") <= 0 || num("W") <= 0 || num("t") < 0) { status("Check domain length / width / time."); return; }
-    var Tc = num("tc");
-    if (Tc <= 0) { status("Compliance threshold must be > 0 mg/L."); return; }
-    var cmax = num("c0");
-    if (cmax <= 0) { status("Source concentration must be > 0 mg/L."); return; }
-    if (Tc >= cmax) { status("Threshold ≥ source concentration — nothing to contour."); return; }
 
-    var p = {
-      Vs: num("Vs"), R: num("R"), ax: num("ax"), ay: num("ay"), az: num("az"),
-      lam: num("lam"), k: num("k"), Z: num("Z"),
-      zones: [[num("w"), num("c0")]]
-    };
-    var t = num("t"), L = num("L"), W = num("W"), azFlow = num("az_flow");
-    var nx = 200, ny = 141;
-    var g = NATEngine.grid(t, p, { length: L, width: W, nx: nx, ny: ny });
-
-    var logMin = Math.log10(Tc), logMax = Math.log10(cmax), span = (logMax - logMin) || 1;
-
-    var cv = document.createElement("canvas");
-    cv.width = nx; cv.height = ny;
-    var ctx = cv.getContext("2d");
-    var imgd = ctx.createImageData(nx, ny);
-    for (var iy = 0; iy < ny; iy++) {
-      for (var ix = 0; ix < nx; ix++) {
-        var C = g.grid[ny - 1 - iy][ix];
-        var idx = (iy * nx + ix) * 4;
-        if (C <= Tc || !isFinite(C)) { imgd.data[idx + 3] = 0; continue; }
-        var n = (Math.log10(C) - logMin) / span;
-        var col = ramp(n);
-        imgd.data[idx] = col[0]; imgd.data[idx+1] = col[1]; imgd.data[idx+2] = col[2];
-        imgd.data[idx+3] = Math.round(255 * (0.40 + 0.50 * Math.max(0, Math.min(1, n))));
-      }
+    // render heatmap
+    var cv = document.createElement("canvas"); cv.width = nx; cv.height = ny;
+    var ctx = cv.getContext("2d"), img = ctx.createImageData(nx, ny);
+    var logMin = Math.log10(Tc), span = (Math.log10(C0) - logMin) || 1;
+    for (var b = 0; b < ny; b++) for (var a = 0; a < nx; a++) {
+      var Cc = grid[ny-1-b][a], idx = (b*nx+a)*4;
+      if (!isFinite(Cc) || Cc <= Tc) { img.data[idx+3] = 0; continue; }
+      var n = (Math.log10(Cc)-logMin)/span, col = ramp(n);
+      img.data[idx]=col[0]; img.data[idx+1]=col[1]; img.data[idx+2]=col[2];
+      img.data[idx+3] = Math.round(255*(0.40+0.5*Math.max(0,Math.min(1,n))));
     }
-    ctx.putImageData(imgd, 0, 0);
-
-    function corner(xAlong, yTrans) {
-      var ll = toLonLat(xAlong, yTrans, azFlow);
-      var xy = webMercatorUtils.lngLatToXY(ll[0], ll[1]);
-      return new Point({ x: xy[0], y: xy[1], spatialReference: { wkid: 3857 } });
-    }
+    ctx.putImageData(img, 0, 0);
+    function corner(xA, yT) { var ll = toLonLat(xA, yT, azf), xy = webMercatorUtils.lngLatToXY(ll[0], ll[1]); return new Point({ x: xy[0], y: xy[1], spatialReference: { wkid: 3857 } }); }
     try {
-      var cpg = new ControlPointsGeoreference({
-        width: nx, height: ny,
-        controlPoints: [
-          { sourcePoint: { x: 0,  y: 0  }, mapPoint: corner(0,  W / 2) },
-          { sourcePoint: { x: nx, y: 0  }, mapPoint: corner(L,  W / 2) },
-          { sourcePoint: { x: nx, y: ny }, mapPoint: corner(L, -W / 2) },
-          { sourcePoint: { x: 0,  y: ny }, mapPoint: corner(0, -W / 2) }
-        ]
-      });
-      var el = new ImageElement({ image: cv, georeference: cpg, opacity: 0.8 });
+      var cpg = new ControlPointsGeoreference({ width: nx, height: ny, controlPoints: [
+        { sourcePoint: {x:0,y:0}, mapPoint: corner(0, W/2) }, { sourcePoint: {x:nx,y:0}, mapPoint: corner(L, W/2) },
+        { sourcePoint: {x:nx,y:ny}, mapPoint: corner(L, -W/2) }, { sourcePoint: {x:0,y:ny}, mapPoint: corner(0, -W/2) } ] });
       plumeSource.elements.removeAll();
-      plumeSource.elements.add(el);
-    } catch (err) {
-      console.error("Plume draw failed:", err);
-      status("⚠ Plume draw error: " + err.message + " (see console)");
-      return;
-    }
+      plumeSource.elements.add(new ImageElement({ image: cv, georeference: cpg, opacity: 0.78 }));
+    } catch (err) { status("Map draw error: " + err.message); return; }
 
-    var reach = 0;
-    for (var i = 0; i < g.xs.length; i++) if (NATEngine.centerline(g.xs[i], t, p) > Tc) reach = g.xs[i];
-    $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = cmax + " mg/L";
-    status("Plume drawn · centerline > threshold to ≈ " + Math.round(reach) + " m downgradient (grid-step resolution)");
+    // ----- centerline chart (chosen engine; exact where it matters) -----
+    var cxs = []; for (var k = 0; k < 120; k++) cxs.push((L*k)/119);
+    var series, reach;
+    if (chainOn) {
+      var pBase2 = { C0: 1, v: p.v, alpha_x: p.alpha_x, alpha_y: p.alpha_y, alpha_z: p.alpha_z, Y: p.Y, Z: p.Z, R: p.R, water_table_source: p.water_table_source };
+      var cols = { PCE:"#1b6ec2", TCE:"#2aa198", "cis-DCE":"#37b24d", VC:"#e8400f", ethene:"#888" };
+      var names = ["PCE","TCE","cis-DCE","VC","ethene"];
+      var vals = {}; names.forEach(function (nm) { vals[nm] = []; });
+      cxs.forEach(function (x) { var c = NATEngine.chainConcentration(chain, pBase2, x, 0, 0, t, engine); names.forEach(function (nm) { vals[nm].push(c[nm]); }); });
+      series = names.map(function (nm) { return { name: nm, color: cols[nm], values: vals[nm] }; });
+      var vc = vals.VC; reach = 0; for (var q = 0; q < cxs.length; q++) if (vc[q] > Tc) reach = cxs[q];
+      $("readout").textContent = "Chlorinated chain · VC > threshold to ≈ " + Math.round(reach) + " m (daughter ingrowth)";
+    } else {
+      var cl = NATEngine.centerline(p, cxs, t, engine);
+      series = [{ name: $("sub").value.indexOf("manual")===0 ? "centerline" : $("sub").value, color: "#1b6ec2", values: cl }];
+      reach = NATEngine.plumeLength(cxs, cl, Tc);
+      $("readout").textContent = (engine === "bioscreen_at" ? "BIOSCREEN-AT exact" : "Domenico") +
+        " · " + (mode === "transient" ? "t=" + num("t") + " yr" : "steady-state") +
+        " · plume to threshold ≈ " + (reach == null ? "> domain" : Math.round(reach) + " m");
+    }
+    plotChart(cxs, series, Tc, L, C0);
+
+    $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = C0 + " mg/L";
+    status("Updated · " + (chainOn ? "chlorinated chain" : engine === "bioscreen_at" ? "exact solver" : "Domenico") + " · map grid " + nx + "×" + ny);
   }
 
+  // ---- source placement ----
   var placing = false;
-  $("place").addEventListener("click", function () {            // W10: toggle so it can be cancelled
-    placing = !placing;
-    status(placing ? "Click the map to place the source… (click the button again to cancel)"
-                   : "Placement cancelled.");
-  });
-  view.on("click", function (e) {
-    if (!placing || !e.mapPoint) return;                        // W10: guard missing mapPoint
-    placing = false;
-    source = { lon: e.mapPoint.longitude, lat: e.mapPoint.latitude };
-    run();
-  });
+  $("place").addEventListener("click", function () { placing = !placing; status(placing ? "Click the map to place the source… (click again to cancel)" : "Placement cancelled."); });
+  view.on("click", function (e) { if (!placing || !e.mapPoint) return; placing = false; source = { lon: e.mapPoint.longitude, lat: e.mapPoint.latitude }; run(); });
   $("run").addEventListener("click", run);
+  window.addEventListener("resize", function () { if (viewReady) run(); });
 
-  onFwChange(); // initialise the standard selector (sets threshold; run() is gated until viewReady)
-  view.when(function () { viewReady = true; drawSource(); status("Ready · set inputs and Run model."); run(); });
+  // ---- optional OAuth (non-blocking) ----
+  if (CONFIG.CLIENT_ID) {
+    try { esriId.registerOAuthInfos([new OAuthInfo({ appId: CONFIG.CLIENT_ID, popup: true, portalUrl: CONFIG.PORTAL_URL })]); } catch (e) {}
+  }
+
+  onFw();
+  view.when(function () { viewReady = true; drawSource(); status("Ready."); run(); });
 });
 </script>
 </body>
