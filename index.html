@@ -137,6 +137,8 @@
           <div><label>d_a aquifer (m)</label><input id="da" type="number" value="5" step="1"></div>
           <div><label>I infil (m/yr)</label><input id="I" type="number" value="0.55" step="0.05"></div>
         </div>
+        <label>BC infiltration look-up <span class="hint">(44 centres → sets I)</span></label>
+        <select id="city"><option value="">— pick a city —</option></select>
         <div class="row">
           <div><label>K (m/s)</label><input id="K" type="number" value="3e-5" step="1e-6"></div>
           <div><label>i gradient</label><input id="igr" type="number" value="0.008" step="0.001"></div>
@@ -199,12 +201,16 @@
   // OAuth (optional; demo runs fine signed-out). Client ID registered in SLR Canada org.
   var CONFIG = { CLIENT_ID: "Ex0iH1kCIRUC31dk", PORTAL_URL: "https://slr-pro.maps.arcgis.com" };
   // DEMO compliance standards (µg/L) — illustrative only; real values come from EQuIS.
+  // PLACEHOLDER / DEMO standards only — illustrative, NOT authoritative. Real BC CSR Schedule 3.2 /
+  // AB Tier 2 / CCME standards load from SLR EQuIS (never hard-coded here). Values flagged DEMO.
   var DEMO_STANDARDS = {
     "(manual entry)": null,
-    "Ontario O.Reg 153/04 — DEMO": {
-      "Table 2 — Potable GW": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5, "Tetrachloroethylene": 30 },
-      "Table 3 — Non-Potable GW": { "Benzene": 44, "Ethylbenzene": 230, "Trichloroethylene": 50 } },
-    "CCME 2006 — DEMO": { "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 } }
+    "BC CSR — DEMO (placeholder)": {
+      "Drinking Water (DW)": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5, "Tetrachloroethylene": 30 },
+      "Aquatic Life (AW)": { "Benzene": 110, "Toluene": 2, "Ethylbenzene": 90 } },
+    "AB Tier 2 — DEMO (placeholder)": {
+      "Potable Groundwater": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5 } },
+    "CCME 2006 — DEMO (placeholder)": { "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 } }
   };
   // chlorinated chain defaults (yr)
   var CHAIN_HL = { PCE: 5.0, TCE: 3.0, "cis-DCE": 2.0, VC: 1.0 };
@@ -330,7 +336,7 @@ require([
     out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
     var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "DEMO"; out.appendChild(badge);
   }
-  fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "Ontario O.Reg 153/04 — DEMO";
+  fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "BC CSR — DEMO (placeholder)";
   $("fw").addEventListener("change", function () { onFw(); run(); });
   $("tbl").addEventListener("change", function () { updateStandard(); run(); });
 
@@ -516,6 +522,13 @@ require([
     $("inCZ").style.display = (s === "CZ") ? "block" : "none";
     run();
   }
+  // BC 44-centre infiltration look-up (public BC ENV reference data, not standards)
+  fetch("bc_lookup.json").then(function (r) { return r.json(); }).then(function (bc) {
+    var sel = $("city");
+    bc.infiltration_bc.forEach(function (c) { var o = document.createElement("option"); o.value = c.I_m_yr; o.textContent = c.city + " (" + c.I_m_yr + " m/yr)"; sel.appendChild(o); });
+    sel.addEventListener("change", function () { if (sel.value) { $("I").value = sel.value; run(); } });
+  }).catch(function () {});
+
   $("jur").addEventListener("change", onJur);
   $("start").addEventListener("change", onStart);
   ["cs","cl_in","cz_in","n","nw","ne","rhob","dwt","dfr","Xlen","da","I","K","igr"].forEach(function (id) { $(id).addEventListener("change", run); });

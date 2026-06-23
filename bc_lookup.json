@@ -1,0 +1,372 @@
+{
+ "_source": "SLR Nat Atten Model.xlsx (Erin Robson, BC ENV lookups) \u2014 public BC guidance, model inputs (NOT compliance standards)",
+ "infiltration_bc": [
+  {
+   "city": "Abbotsford",
+   "I_m_yr": 0.774
+  },
+  {
+   "city": "Ashcroft",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Burns Lake",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Comox",
+   "I_m_yr": 0.538
+  },
+  {
+   "city": "Cranbrook",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Creston",
+   "I_m_yr": 0.118
+  },
+  {
+   "city": "Dawson Creek",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Dease Lake",
+   "I_m_yr": 0.111
+  },
+  {
+   "city": "Fort Nelson",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Fort St John",
+   "I_m_yr": 0.117
+  },
+  {
+   "city": "Golden",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Hope",
+   "I_m_yr": 1.385
+  },
+  {
+   "city": "Kamloops",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Kelowna",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "lillooet",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Lytton",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Nakusp",
+   "I_m_yr": 0.277
+  },
+  {
+   "city": "Nelson",
+   "I_m_yr": 0.312
+  },
+  {
+   "city": "North Cowichan",
+   "I_m_yr": 0.445
+  },
+  {
+   "city": "Ootsa Lake",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Osoyoos",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Pemberton",
+   "I_m_yr": 0.275
+  },
+  {
+   "city": "Penticton",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Pitt Meadows",
+   "I_m_yr": 1.24
+  },
+  {
+   "city": "PortAlbemi",
+   "I_m_yr": 1.266
+  },
+  {
+   "city": "Port Hardy",
+   "I_m_yr": 1.121
+  },
+  {
+   "city": "Prince George",
+   "I_m_yr": 0.081
+  },
+  {
+   "city": "Prince Rupert",
+   "I_m_yr": 1.731
+  },
+  {
+   "city": "Quesnel",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Revelstoke",
+   "I_m_yr": 0.311
+  },
+  {
+   "city": "Salmon Arm",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Saturna Island",
+   "I_m_yr": 0.314
+  },
+  {
+   "city": "Skookumchuck",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Smithers",
+   "I_m_yr": 0.094
+  },
+  {
+   "city": "Squamish",
+   "I_m_yr": 1.179
+  },
+  {
+   "city": "Tatlayoko Lake",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Telegraph Creek",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Terrace",
+   "I_m_yr": 0.766
+  },
+  {
+   "city": "Vancouver",
+   "I_m_yr": 0.55
+  },
+  {
+   "city": "Vernon",
+   "I_m_yr": 0.08
+  },
+  {
+   "city": "Victoria",
+   "I_m_yr": 0.212
+  },
+  {
+   "city": "Warfield",
+   "I_m_yr": 0.123
+  },
+  {
+   "city": "White Rock",
+   "I_m_yr": 0.468
+  },
+  {
+   "city": "Williams Lake",
+   "I_m_yr": 0.08
+  }
+ ],
+ "bc_defaults": [
+  {
+   "sym": "Input Parameter Symbol",
+   "name": "Input Parameter Name",
+   "units": null,
+   "default": "Units",
+   "min": "Default Value",
+   "max": "Minimum Allowable\nValue",
+   "rule": "Maximum Allowable\nValue"
+  },
+  {
+   "sym": "X",
+   "name": "source length",
+   "units": null,
+   "default": "m",
+   "min": 10,
+   "max": 5,
+   "rule": null
+  },
+  {
+   "sym": "Y",
+   "name": "source width",
+   "units": null,
+   "default": "m",
+   "min": 30,
+   "max": 5,
+   "rule": null
+  },
+  {
+   "sym": "Z",
+   "name": "source depth",
+   "units": null,
+   "default": "m",
+   "min": 3,
+   "max": 3,
+   "rule": null
+  },
+  {
+   "sym": "I",
+   "name": "infiltration rate",
+   "units": null,
+   "default": "m/yr",
+   "min": 0.55,
+   "max": 0.08,
+   "rule": null
+  },
+  {
+   "sym": "foc",
+   "name": "fraction of organic carbon",
+   "units": null,
+   "default": "[/]",
+   "min": 0.005,
+   "max": 0.001,
+   "rule": 0.05
+  },
+  {
+   "sym": "nw",
+   "name": "water-filled porosity",
+   "units": null,
+   "default": "[/]",
+   "min": 0.119,
+   "max": 0,
+   "rule": null
+  },
+  {
+   "sym": "x",
+   "name": "distance to point of compliance",
+   "units": null,
+   "default": "m",
+   "min": 10,
+   "max": 10,
+   "rule": 500
+  },
+  {
+   "sym": "da",
+   "name": "aquifer thickness",
+   "units": null,
+   "default": "m",
+   "min": 5,
+   "max": 5,
+   "rule": 20
+  },
+  {
+   "sym": "d",
+   "name": "depth to water table",
+   "units": null,
+   "default": "m",
+   "min": 3,
+   "max": 1,
+   "rule": null
+  },
+  {
+   "sym": "n",
+   "name": "total porosity",
+   "units": null,
+   "default": "[/]",
+   "min": 0.36,
+   "max": 0.2,
+   "rule": 0.4
+  },
+  {
+   "sym": "ne",
+   "name": "effective porosity",
+   "units": null,
+   "default": "[/]",
+   "min": 0.25,
+   "max": 0.1,
+   "rule": 0.4
+  },
+  {
+   "sym": "K",
+   "name": "hydraulic conductivity",
+   "units": null,
+   "default": "m/s",
+   "min": 3e-05,
+   "max": 0,
+   "rule": null
+  },
+  {
+   "sym": "i",
+   "name": "hydraulic gradient",
+   "units": null,
+   "default": "[/]",
+   "min": 0.008,
+   "max": 0,
+   "rule": null
+  },
+  {
+   "sym": "soil pH",
+   "name": "pH of soil",
+   "units": null,
+   "default": "[/]",
+   "min": 6.5,
+   "max": 5,
+   "rule": 9
+  },
+  {
+   "sym": "water pH",
+   "name": "pH of groundwater",
+   "units": null,
+   "default": "[/]",
+   "min": 6.5,
+   "max": 5,
+   "rule": 9
+  },
+  {
+   "sym": "\u03c1b",
+   "name": "dry bulk density of soil",
+   "units": null,
+   "default": "g/cm3",
+   "min": 1.7,
+   "max": 0,
+   "rule": 1.9
+  },
+  {
+   "sym": "H",
+   "name": "water hardness",
+   "units": null,
+   "default": "mg/L",
+   "min": 200,
+   "max": 0,
+   "rule": 500
+  },
+  {
+   "sym": "Dfr",
+   "name": "number of days of frozen ground",
+   "units": null,
+   "default": "days",
+   "min": 0,
+   "max": 0,
+   "rule": 365
+  },
+  {
+   "sym": "v",
+   "name": "average linear groundwater velocity (saturated)",
+   "units": null,
+   "default": "m/yr",
+   "min": 30.27,
+   "max": 5,
+   "rule": 250
+  },
+  {
+   "sym": "b",
+   "name": "vertical distance between base of source and\nwater table",
+   "units": null,
+   "default": "m",
+   "min": 0,
+   "max": null,
+   "rule": 10
+  }
+ ]
+}
