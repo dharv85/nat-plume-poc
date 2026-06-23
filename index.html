@@ -159,9 +159,8 @@
       <legend>Compliance standard <span class="demo">DEMO</span></legend>
       <label>Framework</label><select id="fw"></select>
       <label>Table / condition</label><select id="tbl"></select>
-      <label>Analyte</label><select id="cont"></select>
       <div id="stdout"></div>
-      <div class="hint">Illustrative values. Authoritative standards load from SLR EQuIS (never in this app).</div>
+      <div class="hint">Standard for the contaminant selected above. Illustrative values; authoritative standards load from SLR EQuIS.</div>
     </fieldset>
 
     <fieldset>
@@ -236,7 +235,7 @@ require([
     names.unshift("(manual: R & half-life below)");
     names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; $("sub").appendChild(o); });
     $("sub").value = "Benzene";
-    onContaminant();
+    onContaminant(); updateStandard();
   }).catch(function (e) { status("Substance DB load failed: " + e.message); });
 
   // manual R / half-life inputs appear only in manual mode
@@ -254,7 +253,7 @@ require([
       d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr")));
     } catch (e) { d.textContent = e.message; }
   }
-  ["sub", "foc", "pH"].forEach(function (id) { $(id).addEventListener("change", function () { onContaminant(); run(); }); });
+  ["sub", "foc", "pH"].forEach(function (id) { $(id).addEventListener("change", function () { onContaminant(); updateStandard(); run(); }); });
 
   // segmented toggles
   Array.prototype.forEach.call($("engSeg").children, function (b) {
@@ -312,21 +311,28 @@ require([
     return [source.lon + east/(111320*Math.cos(source.lat*Math.PI/180)), source.lat + north/111320];
   }
 
-  // ---- compliance standard selector ----
+  // ---- compliance standard: looks up the standard for the contaminant chosen above (no 2nd pick) ----
   function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); }); }
+  function curContaminant() { var n = $("sub").value; return n.indexOf("manual") === 0 ? null : n; }
   function onFw() { var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { fillSelect($("tbl"), ["—"]); fillSelect($("cont"), ["—"]); $("stdout").textContent = "Manual threshold below."; return; }
-    fillSelect($("tbl"), Object.keys(fw)); onTbl(); }
-  function onTbl() { var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return; fillSelect($("cont"), Object.keys(fw[$("tbl").value] || {})); onCont(); }
-  function onCont() { var fw = DEMO_STANDARDS[$("fw").value]; if (!fw) return; var v = (fw[$("tbl").value]||{})[$("cont").value];
-    var out = $("stdout"); out.textContent = ""; var b = document.createElement("b"); b.textContent = $("cont").value; out.appendChild(b);
-    if (v == null) { out.appendChild(document.createTextNode(": —")); return; }
-    var mgL = Number(v)/1000; $("tc").value = mgL;
+    if (!fw) { fillSelect($("tbl"), ["—"]); } else { fillSelect($("tbl"), Object.keys(fw)); }
+    updateStandard(); }
+  function updateStandard() {
+    var out = $("stdout"); out.textContent = "";
+    var fw = DEMO_STANDARDS[$("fw").value];
+    if (!fw) { out.textContent = "Manual threshold (set below)."; return; }
+    var tbl = fw[$("tbl").value] || {}, c = curContaminant();
+    if (!c) { out.textContent = "Select a contaminant above to look up a standard."; return; }
+    var b = document.createElement("b"); b.textContent = c; out.appendChild(b);
+    var v = tbl[c];
+    if (v == null) { out.appendChild(document.createTextNode(" — no DEMO standard in this table; set threshold manually.")); return; }
+    var mgL = Number(v) / 1000; $("tc").value = mgL;
     out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
     var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "DEMO"; out.appendChild(badge);
-    run(); }
+  }
   fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "Ontario O.Reg 153/04 — DEMO";
-  $("fw").addEventListener("change", onFw); $("tbl").addEventListener("change", onTbl); $("cont").addEventListener("change", onCont);
+  $("fw").addEventListener("change", function () { onFw(); run(); });
+  $("tbl").addEventListener("change", function () { updateStandard(); run(); });
 
   // ---- centerline chart (canvas, log-y) ----
   function plotChart(xs, series, Tc, L, C0) {
