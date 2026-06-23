@@ -105,6 +105,47 @@
     </fieldset>
 
     <fieldset>
+      <legend>Source pathway → C₀ <span class="pill">Steps 1–3</span></legend>
+      <label>Jurisdiction defaults</label>
+      <select id="jur">
+        <option value="manual">Manual — enter C₀ directly</option>
+        <option value="BC">BC CSR / GPM</option>
+        <option value="AB">AB Tier 2</option>
+      </select>
+      <div id="pathBody" style="display:none">
+        <label>Start from (run all, or skip ahead)</label>
+        <select id="start">
+          <option value="soil">① Soil concentration C_s</option>
+          <option value="CL">② Leachate C_L (skip 1)</option>
+          <option value="CZ">③ Leachate at water table C_Z (skip 1–2)</option>
+        </select>
+        <div id="inSoil"><label>Soil conc C_s (µg/g)</label><input id="cs" type="number" value="100" step="1"></div>
+        <div id="inCL" style="display:none"><label>Leachate C_L (µg/L)</label><input id="cl_in" type="number" value="120000" step="100"></div>
+        <div id="inCZ" style="display:none"><label>C_Z at water table (µg/L)</label><input id="cz_in" type="number" value="120000" step="100"></div>
+        <div class="row">
+          <div><label>n</label><input id="n" type="number" value="0.36" step="0.01"></div>
+          <div><label>n_w</label><input id="nw" type="number" value="0.119" step="0.01"></div>
+          <div><label>n_e</label><input id="ne" type="number" value="0.25" step="0.01"></div>
+        </div>
+        <div class="row">
+          <div><label>ρ_b (g/cm³)</label><input id="rhob" type="number" value="1.7" step="0.1"></div>
+          <div><label>d to WT (m)</label><input id="dwt" type="number" value="3" step="0.5"></div>
+          <div><label>D_fr (d frozen)</label><input id="dfr" type="number" value="0" step="1"></div>
+        </div>
+        <div class="row">
+          <div><label>X len ∥flow (m)</label><input id="Xlen" type="number" value="10" step="1"></div>
+          <div><label>d_a aquifer (m)</label><input id="da" type="number" value="5" step="1"></div>
+          <div><label>I infil (m/yr)</label><input id="I" type="number" value="0.55" step="0.05"></div>
+        </div>
+        <div class="row">
+          <div><label>K (m/s)</label><input id="K" type="number" value="3e-5" step="1e-6"></div>
+          <div><label>i gradient</label><input id="igr" type="number" value="0.008" step="0.001"></div>
+        </div>
+        <div id="pathOut" style="font-size:11px;margin-top:6px;line-height:1.5"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
       <legend>Source</legend>
       <div class="row">
         <div><label>C₀ (mg/L)</label><input id="c0" type="number" value="10" step="0.5"></div>
@@ -171,6 +212,7 @@
 </script>
 <script src="https://js.arcgis.com/4.30/"></script>
 <script src="nat_engine.js"></script>
+<script src="soil_to_gw.js"></script>
 <script>
 require([
   "esri/Map", "esri/views/MapView", "esri/layers/MediaLayer",
@@ -185,11 +227,11 @@ require([
   var $ = function (id) { return document.getElementById(id); };
   var status = function (m) { $("status").textContent = m; };
   var num = function (id) { return parseFloat($(id).value); };
-  var engine = "bioscreen", mode = "steady";
+  var engine = "bioscreen", mode = "steady", DB = null;
 
   // ---- load substance DB, populate picker ----
   fetch("substances.json").then(function (r) { return r.json(); }).then(function (db) {
-    NATEngine.setSubstanceDB(db);
+    NATEngine.setSubstanceDB(db); DB = db;
     var names = Object.keys(db.substances).sort();
     names.unshift("(manual: R & half-life below)");
     names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; $("sub").appendChild(o); });
@@ -315,6 +357,7 @@ require([
   function run() {
     if (!viewReady) return;
     drawSource();
+    if ($("jur").value !== "manual") { try { computePathway(); } catch (e) { status("Pathway: " + e.message); } }
     var p, Tc = num("tc"), L = num("L"), W = num("W"), azf = num("azf"), t = tVal();
     if (!isFinite(Tc) || Tc <= 0) { status("Threshold must be > 0."); return; }
     try { p = buildModel(); } catch (e) { status(e.message); return; }
@@ -407,6 +450,69 @@ require([
     esriId.getCredential(CONFIG.PORTAL_URL + "/sharing", { oAuthPopupConfirmation: false })
       .then(onSignedIn).catch(function (e) { status("Sign-in failed: " + (e && e.message)); });
   });
+
+  // ---- Source pathway: Steps 1–3 (Soil→Leachate→Mixing → C₀), via validated soil_to_gw.js ----
+  var BC_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-5, igr:0.008, Z:3 };
+  var AB_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-7, igr:0.028, Z:3 };
+  function fmt(x) { return (x >= 1000) ? Math.round(x).toLocaleString() : Number(x).toPrecision(4); }
+  function rangeFlags(sp) {
+    var f = []; if (sp.foc < 0.001 || sp.foc > 0.05) f.push("foc");
+    if (sp.n < 0.2 || sp.n > 0.4) f.push("n"); if (sp.nw < 0 || sp.nw > 0.4 || sp.nw > sp.n) f.push("n_w");
+    if (sp.X < 5) f.push("X"); if (sp.da < 5 || sp.da > 20) f.push("d_a"); if (sp.d < 1) f.push("d");
+    if (sp.P_mm / 1000 < 0.08) f.push("I"); return f;
+  }
+  function computePathway() {
+    var out = $("pathOut"); out.textContent = "";
+    if ($("jur").value === "manual") return;
+    var name = $("sub").value;
+    if (name.indexOf("manual") === 0 || !DB) { out.textContent = "Select a database substance to use the pathway."; return; }
+    var e = DB.substances[name], pH = num("pH");
+    var sub = { name: name, cls: e.cls, koc: (e.koc != null ? e.koc : null),
+      kd: (e.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: (e.henry || 0),
+      t_half_unsat_d: e.t_half_unsat_d, t_half_sat_d: e.t_half_sat_d,
+      solubility_ug_L: (e.solubility_ug_L != null ? e.solubility_ug_L : Infinity),
+      detection_limit_ug_g: null, background_ug_g: null, standards: {} };
+    var sp = NATSoilToGW.jurisdictionDefaults($("jur").value === "AB" ? "AB" : "BC");
+    sp.foc = num("foc"); sp.n = num("n"); sp.nw = num("nw"); sp.ne = num("ne"); sp.rho_b = num("rhob");
+    sp.Z = num("Z"); sp.d = num("dwt"); sp.X = num("Xlen"); sp.da = num("da");
+    sp.K_m_s = num("K"); sp.i = num("igr"); sp.Dfr = num("dfr");
+    sp.P_mm = num("I") * 1000; sp.RO_EV_mm = 0;
+    var S = NATSoilToGW, start = $("start").value, sol = sub.solubility_ug_L, CL, CZ, C0, b = sp.d - sp.Z;
+    if (start === "soil") CL = Math.min(num("cs") / S.fPartition(sub, sp), sol);
+    else if (start === "CL") CL = num("cl_in");
+    if (start === "soil" || start === "CL") CZ = (b <= 0) ? CL : CL * S.fUnsaturated(sub, sp);
+    else CZ = num("cz_in");
+    C0 = CZ / S.dilutionFactor(sp);
+    var capped = false; if (isFinite(sol) && C0 > 2 * sol) { C0 = 2 * sol; capped = true; }
+    var C0mg = C0 / 1000, v = sp.K_m_s * sp.i / sp.ne * 3.1536e7;
+    $("c0").value = Number(C0mg.toPrecision(4)); $("v").value = Number(v.toPrecision(4));
+    function line(t) { var d = document.createElement("div"); d.textContent = t; out.appendChild(d); }
+    if (start === "soil") line("C_L = " + fmt(CL) + " µg/L" + (CL >= sol ? "  (solubility-capped)" : ""));
+    line(b <= 0 ? "C_Z = C_L  (source at water table, b ≤ 0 → no unsat. step)" : "C_Z = " + fmt(CZ) + " µg/L");
+    line("DF = " + S.dilutionFactor(sp).toFixed(2) + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
+    line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/n_e)");
+    var fl = rangeFlags(sp);
+    if (fl.length) { var w = document.createElement("div"); w.style.color = "#c60"; w.textContent = "⚠ outside BC allowable range: " + fl.join(", ") + " (allowed, but flagged)"; out.appendChild(w); }
+  }
+  function populateDefaults(jur) { var d = (jur === "AB") ? AB_DEF : BC_DEF; for (var k in d) { if ($(k)) $(k).value = d[k]; } }
+  function onJur() {
+    var active = $("jur").value !== "manual";
+    $("pathBody").style.display = active ? "block" : "none";
+    $("c0").readOnly = active; $("v").readOnly = active;
+    $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
+    if (active) populateDefaults($("jur").value);
+    run();
+  }
+  function onStart() {
+    var s = $("start").value;
+    $("inSoil").style.display = (s === "soil") ? "block" : "none";
+    $("inCL").style.display = (s === "CL") ? "block" : "none";
+    $("inCZ").style.display = (s === "CZ") ? "block" : "none";
+    run();
+  }
+  $("jur").addEventListener("change", onJur);
+  $("start").addEventListener("change", onStart);
+  ["cs","cl_in","cz_in","n","nw","ne","rhob","dwt","dfr","Xlen","da","I","K","igr"].forEach(function (id) { $(id).addEventListener("change", run); });
 
   onFw();
   view.when(function () { viewReady = true; drawSource(); status("Ready."); run(); });
