@@ -77,8 +77,10 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
    from ρb (C.8.2); lock/co-update the linked groups.
 6. **No vapour-intrusion / CSM scope statement** — prominent banner: groundwater pathway only; volatiles
    (VC, 1,1-DCE, light PHC) require separate vapour-intrusion screening.
-7. **No reconciliation vs the official Alberta Tier 2 calculator** — validate ≥2 worked examples (PHC +
-   chlorinated) cell-for-cell before site use.
+7. ◐ HARNESS BUILT — **Reconciliation vs published Tier 1 values** (`ab_tier1_reconcile.js`,
+   `AB_TIER1_RECONCILIATION.md`): tool DF chain reproduces benzene-coarse GW-protection soil guideline
+   to ~8% (0.042 vs 0.046 mg/kg); SWQG-µg/L unit fix found. Remaining: Emma confirms published-value
+   column attribution; full cell-for-cell still needs the **official Alberta Tier 2 calculator**.
 
 **MEDIUM**
 8. Velocity uses θt (conservative for guidelines, non-conservative for travel time) — annotate the
