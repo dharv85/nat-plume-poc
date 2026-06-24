@@ -45,7 +45,23 @@ It was **not a math error** — it was a **BC-vs-AB confusion** in the decay ter
 the AB-specific velocity (θt), decay (Ls), and TCE half-life, the whole aquatic pathway reconciles. BC is
 untouched (`engine.test.js` 1e-9); DUA 14/14; Part A 12/12.
 
-## To confirm with Emma
-- **d = water-table depth = 3 m** is the Tier 1 default used here (gives the match). Confirm the AB generic
-  default; the `e^(−0.07·d)` factor makes DF4 sensitive to it.
-- TCE half-life 2.19 yr (Table C-6) now in `ab_a6.json`.
+## The two depths — confirmed distinct (Table C-3, Site Characteristics, p146)
+The guidance reuses the symbol "d" for two DIFFERENT parameters that feed DIFFERENT equations. Both
+confirmed verbatim from Table C-3 and the per-DF parameter definitions:
+
+| Table C-3 parameter | Value | Equation (definition source) | Tool field |
+|---|---|---|---|
+| **Depth to Groundwater (water table)** | **3 m** | DF2 `b = d − Z`; **DF4 decay** `e^(−0.07·d)` (p135: "d = water table depth") | `sp.d` |
+| **Depth of Unconfined Aquifer** (thickness) | **5 m** | **DF3 mixing zone** `Zd = 0.01·X + da·(…)` (p133: "da = unconfined aquifer thickness") | `sp.da` |
+
+Tool verified: `soil_to_gw.js` defaults `d:3.0, da:5.0`; DF4 decay uses `sp.d` (3), DF3 uses `sp.da` (5),
+DF2 uses `sp.d − sp.Z` = 0; UI maps separate `dwt`/`da` fields. **No symbol-collision — each depth goes to
+the right equation.**
+
+## Other parameters confirmed from Table C-3
+- **Transport time t = 500 yr** — CONFIRMED (matches `fSaturated` t = 500). ✅
+- Source depth Z = 3 m (→ b = 0 → DF2 = 1); x = 10 m surface water / 0 m potable & agricultural;
+  Y = X = 10 m. All CONFIRMED.
+
+## Still for Emma to confirm
+- TCE saturated half-life **2.19 yr** (Table C-6, CCME) — now in `ab_a6.json` (was null).
