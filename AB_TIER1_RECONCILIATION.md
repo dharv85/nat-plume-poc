@@ -72,14 +72,16 @@ solutes PCE & naphthalene match the *full* chain to 0–2%, proving DF4≈1 and 
 **DF4 (lateral transport) only reconciles for non-degraders** — it diverges for every biodegrading solute
 and for TCE. The divergence is entirely in DF4's biodegradation term.
 
-### ⚠ DF4 discrepancies — flagged for Craig (frozen saturated-transport math, NOT changed)
-Per the hydro guardrail (don't alter the validated Step-4 / Domenico math), these are flagged, not fixed:
-- **Velocity porosity:** the tool's `fSaturated` uses **effective porosity ne = 0.25**; AB DF4 uses
-  **total porosity θt** (p134, `v = V/(θt·Rs)`). Slower velocity → more biodegradation → larger DF4.
-- **Saturated half-lives:** e.g. **TCE is null** in `ab_a6.json` but AB credits TCE biodegradation
-  (published DF4 ≫ 1) — a data gap; benzene/toluene values also need checking vs AB.
-- **Transient t = 500 yr vs AB's DF4 time basis**, and the exact DF4 equation form (p134).
-- These touch the **frozen saturated-transport core** → require Craig's review before any change.
+### DF4 — fixes applied (Craig-authorized); residual flagged → see `AB_DF4_HANDOFF.md`
+**Applied:** (1) AB now uses **total porosity θt** in `fSaturated` — ne is a **BC-only** parameter (per
+Emma + Table C-2, which lists only θt; p134 `v = V/(θt·Rs)`); BC keeps ne (byte-identical, 1e-9).
+(2) **TCE saturated half-life null → 2.19 yr** (Table C-6, CCME) → TCE coarse went −92% → **+7%**.
+**Residual (for Craig + the official calculator):** with the documented θt method, biodegrader DF4 now
+**over-predicts** the published values ~2× (ne under-predicted, θt over-predicts — published sits
+between). Ruled out: porosity convention, steady-vs-transient (identical), transverse factor (would break
+the non-degraders). The residual is in the **longitudinal decay term** of the frozen Domenico DF4 → needs
+the **official AB Tier 2 calculator** to pin the equation/half-lives. DUA/livestock/irrigation
+(x = 0 → DF4 = 1) and all non-degraders (PCE, naphthalene) are unaffected and reconcile.
 
 ### 🐞 Engine finding (Part A): DF3 used BC GPM constants, not AB (fixed; needs Craig sign-off)
 The shared `dilutionFactor` computed the mixing zone with **BC GPM constants** (`Zd = 0.1·X +

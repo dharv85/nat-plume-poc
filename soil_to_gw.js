@@ -74,11 +74,15 @@
     else { var s = da * (1 - Math.exp(-(X * I) / (V * da))); dm = Math.min(0.1 * X + s, da); }
     return 1 + (dm * V) / (X * I);
   }
-  function fSaturated(sub, sp, steady, tYr) {
+  // abMode: AB Tier 1 ignores effective porosity ne (a BC-only parameter) — the saturated-zone seepage
+  // velocity uses TOTAL porosity θt (= sp.n), per AB Tier 1 p134 (v = V/(θt·Rs)) and Table C-2. BC keeps
+  // ne (validated). NOTE: with θt the aquatic DF4 over-predicts the published AB Tier 1 values for
+  // biodegraders (~2×) — see AB_DF4_HANDOFF.md; the residual is flagged for Craig + the official calculator.
+  function fSaturated(sub, sp, steady, tYr, abMode) {
     if (steady === undefined) steady = true; if (tYr === undefined) tYr = 500.0;
     var x = sp.x_poc; if (x <= 0) return 1.0;
     var alphaX = 0.1 * x, alphaY = 0.01 * x, Rf = retardation(sub, sp, sp.n);
-    var v = V_m_yr(sp) / sp.ne, vp = v / Rf, lam = lambdaPerYr(sub.t_half_sat_d);
+    var v = V_m_yr(sp) / (abMode ? sp.n : sp.ne), vp = v / Rf, lam = lambdaPerYr(sub.t_half_sat_d);
     var root = Math.sqrt(1 + 4 * lam * alphaX / vp);
     var longitudinal = Math.exp((x / (2 * alphaX)) * (1 - root));
     if (!steady) longitudinal *= 0.5 * erfc((x - vp * tYr * root) / (2 * Math.sqrt(alphaX * vp * tYr)));
@@ -113,7 +117,7 @@
     // the BC GPM mixing zone in the shared dilutionFactor primitive.
     var zd = (use === WaterUse.DRINKING) ? 2 : null;
     var DF1 = fPartition(sub, sp), DF2 = 1 / fUnsaturated(sub, sp), DF3 = dilutionFactor(sp, zd, true);
-    var DF4 = (use === WaterUse.AQUATIC || use === WaterUse.WILDLIFE) ? 1 / fSaturated(sub, sp, false, 500.0) : 1.0;
+    var DF4 = (use === WaterUse.AQUATIC || use === WaterUse.WILDLIFE) ? 1 / fSaturated(sub, sp, false, 500.0, true) : 1.0;
     var DF = DF1 * DF2 * DF3 * DF4;
     return { applicable: true, SRG_GR: swqg * DF, DF1: DF1, DF2: DF2, DF3: DF3, DF4: DF4, DF: DF };
   }

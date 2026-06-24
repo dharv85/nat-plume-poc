@@ -133,17 +133,15 @@ AQ.forEach(function (c) {
       "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
   });
 });
-console.log("\nReading of Parts A + B:");
+console.log("\nReading of Parts A + B (see AB_DF4_HANDOFF.md):");
 console.log("- DF1·DF2·DF3 (soil→GW) reconciles for ALL contaminants (Part A 12/12; non-degraders PCE/");
 console.log("  naphthalene match the FULL chain to 0–2% — confirming DF4≈1 and the chain together).");
-console.log("- DF4 (lateral transport, x=10 m, p132 — active for aquatic/wildlife only → finding #9 OK)");
-console.log("  reconciles for NON-degrading solutes but DIVERGES for biodegraders (benzene/toluene/EB/");
-console.log("  xylenes) and TCE. ⚠ Root causes sit in the FROZEN saturated-transport math (Step 4, Craig's):");
-console.log("    · velocity porosity — tool uses ne=0.25; AB DF4 uses TOTAL porosity θt (p134, v=V/(θt·Rs));");
-console.log("    · saturated half-lives — e.g. TCE is null here but AB credits TCE biodegradation (DF4≫1);");
-console.log("    · transient t=500 yr vs AB's DF4 time basis, and the exact DF4 equation form (p134).");
-console.log("  Per the hydro guardrail these are FLAGGED for Craig — NOT changed. So the aquatic pathway's");
-console.log("  soil→GW chain is reconciled; its lateral-transport term is not yet, for biodegrading solutes.");
+console.log("- DF4 fixes APPLIED: AB now uses TOTAL porosity θt (ne is BC-only, per Emma + Table C-2 /");
+console.log("  p134 v=V/(θt·Rs)); TCE saturated half-life null→2.19 yr (Table C-6) → TCE coarse −92%→+7%.");
+console.log("- DF4 RESIDUAL (flagged for Craig): with the documented θt method, biodegrader DF4 now OVER-");
+console.log("  predicts published ~2× (ne under-, θt over-; published sits between). Ruled out porosity,");
+console.log("  steady-vs-transient, transverse factor → residual is in the longitudinal decay term; needs");
+console.log("  the official AB Tier 2 calculator. DUA/livestock/irrigation (x=0→DF4=1) unaffected.");
 
 // ============================================================================================
 // PHC fractions (F1–F4). Labs report LUMPED F1–F4, but AB derives the lumped Tier 1 guideline
