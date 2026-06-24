@@ -118,6 +118,7 @@
           <div class="seg" id="texSeg"><button data-tex="coarse" class="on">Coarse</button><button data-tex="fine">Fine</button></div>
           <div class="chk" style="margin-top:5px"><input type="checkbox" id="abFineLayer"><label for="abFineLayer" style="margin:0">Continuous fine layer ≥1 m over coarse <span class="hint">(apply fine recharge — Table 6 exception)</span></label></div>
         </div>
+        <div id="abC2Note" style="display:none;font-size:10px;color:#8a6d00;background:#fff8e6;border:1px solid #f0d68a;border-radius:4px;padding:4px 6px;margin-top:5px;line-height:1.35"></div>
         <label>Start from (run all, or skip ahead)</label>
         <select id="start">
           <option value="soil">① Soil concentration C_s</option>
@@ -265,17 +266,19 @@ require([
     var e = DB.substances[name];
     var a = (AB6 && AB6.substances[name]) ? AB6.substances[name] : null;
     if ($("jur").value === "AB" && a && (!e || e.cls !== "metal")) {
-      return { koc: a.koc, henry: a.henry, sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null),
+      return { koc: (a.koc != null ? a.koc : null), kd: (a.kd != null ? a.kd : null), henry: a.henry,
+        sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null),
         hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: (e ? e.cls : (a.cls || "petroleum")), src: "AB A-6" };
     }
-    if (!e) return { koc: 0, henry: 0, sol_ug_L: null, hl_yr: null, cls: "petroleum", src: "—" }; // AB-only contaminant w/o AB framework
+    if (!e) return { koc: 0, kd: null, henry: 0, sol_ug_L: null, hl_yr: null, cls: "petroleum", src: "—" }; // AB-only contaminant w/o AB framework
     var pHv = $("pH") ? num("pH") : 6.5; // BC: NATEngine.koc handles pH-dependent isotherms (e.g. PCP)
-    return { koc: NATEngine.koc(name, pHv), henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
+    return { koc: NATEngine.koc(name, pHv), kd: null, henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
       hl_yr: (e.t_half_sat_d ? e.t_half_sat_d / 365.25 : null), cls: e.cls, src: "BC P28" };
   }
   function retardationFor(name, foc, rhob, n, pH) {
     var c = chemFor(name);
     if (c.cls === "metal") return NATEngine.retardation(name, foc, rhob, n, pH); // metals: BC pH-Kd
+    if (c.kd != null) return 1 + (rhob / n) * c.kd;        // fixed-Kd substance (e.g. DIPA, A-6 mean Kd)
     return 1 + (rhob / n) * ((c.koc || 0) * foc);
   }
   function soilProps() { // rhob, n from the active framework defaults (else BIOSCREEN generic)
@@ -588,7 +591,8 @@ require([
     if (name.indexOf("manual") === 0 || !DB) { out.textContent = "Select a database substance to use the pathway."; return; }
     var e = DB.substances[name], pH = num("pH"), c = chemFor(name);
     var hlD = (c.hl_yr != null) ? c.hl_yr * 365.25 : null;   // A-6 gives one half-life (yr)→days
-    var sub = { name: name, cls: c.cls, koc: c.koc,
+    var sub = { name: name, cls: c.cls,
+      koc: (c.kd != null ? c.kd / num("foc") : c.koc), // fixed-Kd → effective Koc so kdEff = Kd in soil_to_gw
       kd: (c.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: c.henry,
       t_half_unsat_d: (c.src === "AB A-6" ? hlD : e.t_half_unsat_d), t_half_sat_d: (c.src === "AB A-6" ? hlD : e.t_half_sat_d),
       solubility_ug_L: (c.sol_ug_L != null ? c.sol_ug_L : Infinity),
@@ -646,6 +650,10 @@ require([
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
     if (active) populateDefaults(jur);
     refreshSubstanceList();           // add/remove AB-only contaminants (PHC fractions, VC, …)
+    if ($("abC2Note")) {              // AB Table C-2 linked-groups reminder (free-edit, but flagged)
+      $("abC2Note").style.display = (jur === "AB") ? "block" : "none";
+      $("abC2Note").textContent = "⚠ AB Table C-2 — linked parameters must be adjusted TOGETHER as a group: if you change one, change all in its group. (1) Soil properties: ρb, moisture, total/air/water porosity. (2) Source dimensions: X, Y, depth-to-contam., thickness, depth-to-GW. (3) Hydrogeology: K + i. Independent (vary alone): foc, distance to receptor. Inputs here are free-edit — apply this rule manually.";
+    }
     syncComplianceToFramework(jur);   // align the compliance standard to the framework
     onContaminant();                  // refresh R / half-life (AB uses A-6 chemistry)
     run();

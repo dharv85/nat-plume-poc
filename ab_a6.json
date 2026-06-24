@@ -7,9 +7,10 @@
   "half_life_yr": "year"
  },
  "notes": {
-  "PHC_fractions": "Aliphatic/aromatic sub-fraction half-lives assigned from the parent CCME PHC fraction (F1 C6-C10 = 1.95 yr, F2 C10-C16 = 4.79 yr, F3/F4 = non-degrading). CONFIRM with Emma.",
-  "Pentachlorophenol": "A-6 single Koc (2500); BC P28 uses pH-dependent isotherm \u2014 confirm.",
-  "skipped": "Diisopropanolamine (mean Kd not Koc), PFOS (col alignment), Nonylphenol (no clean row)."
+  "PHC_fractions": "Sub-fraction half-lives from parent CCME fraction (F1 C6-C10=1.95 yr, F2 C10-C16=4.79 yr, F3/F4=non-degrading). CONFIRMED correct (Dan, 2026-06-24).",
+  "Pentachlorophenol": "DECIDED (Dan, 2026-06-24): AB uses the A-6 single Koc (2500), NOT the BC pH-isotherm. Implemented.",
+  "Diisopropanolamine": "A-6 gives a mean Kd (2.2 L/kg), not Koc (sorbs to clay). Modelled as fixed-Kd. CONFIRMED (Dan, 2026-06-24).",
+  "Nonylphenol": "A-6 has 'Nonylphenol' only (no ethoxylate); mapped to the tool's 'Nonylphenol+ethox.' CONFIRMED (Dan, 2026-06-24)."
  },
  "substances": {
   "Benzene": {
@@ -243,6 +244,27 @@
    "sol_mg_L": 0.0066,
    "half_life_yr": null,
    "src": "CCME2008 (F3)"
+  },
+  "Diisopropanolamine": {
+   "kd": 2.2,
+   "henry": 7e-06,
+   "sol_mg_L": 870000,
+   "half_life_yr": null,
+   "src": "CCME2006b (*** mean Kd, not Koc \u2014 sorbs to clay)"
+  },
+  "PFOS": {
+   "koc": 1445,
+   "henry": 1.44e-07,
+   "sol_mg_L": 550,
+   "half_life_yr": null,
+   "src": "CCME2021"
+  },
+  "Nonylphenol+ethox.": {
+   "koc": 141254,
+   "henry": 0.005,
+   "sol_mg_L": 5.43,
+   "half_life_yr": null,
+   "src": "EC2002 \u2014 A-6 lists 'Nonylphenol' (no ethoxylate); mapped to tool's Nonylphenol+ethox."
   }
  }
 }

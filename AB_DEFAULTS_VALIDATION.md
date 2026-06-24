@@ -96,9 +96,8 @@ all in the group must be):
 - **Group 3 – Hydrogeological:** saturated hydraulic conductivity + hydraulic gradient.
 - **Independent (vary individually):** foc, distance to receptor.
 
-The tool currently lets each input be edited independently. **Decision for Emma:** enforce the C-2
-linked groups (e.g. editing K prompts/forces a paired i), or leave free-edit with a note. Not yet
-implemented.
+**DECIDED (Dan, 2026-06-24):** keep **free-edit**; a clear in-UI note (shown under AB) lists the
+linked groups the user must adjust together manually. Implemented.
 
 ## "Not in C-1" parameters — confirmed handling from the guidance
 Resolved against the AB Tier 2 document (citations below):

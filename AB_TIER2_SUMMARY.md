@@ -24,10 +24,10 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 
 ## 🔎 Remaining — for Emma (science sign-off)
 1. **Confirm the transcribed values** — A-2/A-3 defaults, C-1 ranges, and A-6 chemistry against her copy of the guidance (I transcribed + verified line-by-line, but a second set of eyes on regulatory numbers).
-2. **PHC sub-fraction half-lives** — assigned from the parent CCME fraction (F1 C6–C10 = 1.95 yr, F2 C10–C16 = 4.79 yr, F3/F4 non-degrading). Confirm this mapping.
-3. **Pentachlorophenol** — A-6 uses a single Koc (2500); BC P28 uses a pH-dependent isotherm. Decide which AB should use.
-4. **3 skipped substances** — Diisopropanolamine (A-6 gives a mean Kd, not Koc), PFOS (uncertain column alignment), Nonylphenol+ethox. (no clean A-6 row). They stay on BC P28 — confirm or supply values.
-5. **Table C-2 linked parameter groups** — AB requires some parameters to be adjusted together (soil-property set; source-dimension set; K + i). Tool currently allows independent edits. Decide: enforce linking, or free-edit with a note.
+2. ✅ **PHC sub-fraction half-lives** — CONFIRMED (Dan): F1 C6–C10 = 1.95 yr, F2 C10–C16 = 4.79 yr, F3/F4 non-degrading.
+3. ✅ **Pentachlorophenol** — DECIDED (Dan): AB uses the single Koc (2500). Implemented.
+4. ✅ **3 'skipped' substances RESOLVED (Dan)** — Diisopropanolamine added as fixed **Kd = 2.2**; PFOS added as **Koc = 1,445**; Nonylphenol+ethox. mapped to A-6 **'Nonylphenol' Koc = 141,254**. All 19 tool organics now have A-6 values.
+5. ✅ **Table C-2 linked groups** — DECIDED (Dan): **free-edit** with a clear in-UI note (added under AB) listing the linked groups the user must adjust together manually.
 
 ## ⚠️ Remaining — engine-level (Craig) / behaviour to confirm
 6. **AB metals** — AB Tier 2 does **not** model soil→GW for inorganics (requires site-specific GW sampling). The tool currently still computes a metal pathway under AB (using BC Kd). Should **block/warn for metals under AB**. (Not implemented.)
