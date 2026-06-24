@@ -18,7 +18,7 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 | **Infiltration I** | Read-only / fixed by texture (not adjustable) + the "fine layer ≥1 m over coarse" exception checkbox. | Table 6 |
 | **Effective porosity** | AB velocity uses **total porosity θt** (v = V/(θt·Rs)), not ne; ne greyed out for AB. | DF4 eqs, p104 |
 | **Aquifer thickness d_a** | Read-only / fixed at 5 m (not adjustable). | Table 6, A-3 |
-| **A-6 chemistry override** | When AB is selected, Koc / H′ / solubility / half-life come from **Table A-6**, not BC Protocol 28. Source-tagged [AB A-6] / [BC P28]. **31 contaminants.** | Table A-6 |
+| **A-6 chemistry override** | When AB is selected, Koc / H′ / solubility / half-life come from **Table A-6**, not BC Protocol 28. Source-tagged [AB A-6] / [BC P28]. **34 contaminants** (19 DB-matched + 15 AB-specific). | Table A-6 |
 | **AB-specific contaminants** | 15 AB-only entries appear in the picker only under AB: PHC aliphatic/aromatic fractions, vinyl chloride, 1,1-DCE, 1,2-DCA, styrene. | Table A-6 |
 | **Validation record** | `AB_DEFAULTS_VALIDATION.md` with every value + citation. | — |
 
@@ -30,8 +30,8 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 5. ✅ **Table C-2 linked groups** — DECIDED (Dan): **free-edit** with a clear in-UI note (added under AB) listing the linked groups the user must adjust together manually.
 
 ## ⚠️ Remaining — engine-level (Craig) / behaviour to confirm
-6. **AB metals** — AB Tier 2 does **not** model soil→GW for inorganics (requires site-specific GW sampling). The tool currently still computes a metal pathway under AB (using BC Kd). Should **block/warn for metals under AB**. (Not implemented.)
-7. **Saturated transport mode** — AB DF4 is **transient at t = 500 yr**. The tool's plume defaults to steady-state; AB runs should default to **transient t=500** (the toggle exists; auto-setting it for AB is not wired).
+6. ✅ **AB metals** — DONE: under AB, selecting a metal blocks the soil→GW pathway with a warning ("assess by site-specific GW sampling; enter observed C₀ directly") and frees C₀ for manual entry.
+7. ✅ **Saturated transport mode** — DONE: selecting AB sets the plume to **transient, t = 500 yr** (AB DF4); selecting BC sets steady-state (BC GPM). User can still override.
 8. **Mixing-zone Z_d = 2 m for the drinking-water pathway** (calculated for other pathways) — engine always calculates it. Engine-level note, not changed.
 9. **Point of compliance x by water use** — AB varies x (potable/agricultural = 0 m; surface water = 10 m). Tool fixes x_poc = 10. To wire per water use.
 

@@ -589,6 +589,15 @@ require([
     if ($("jur").value === "manual") return;
     var name = $("sub").value;
     if (name.indexOf("manual") === 0 || !DB) { out.textContent = "Select a database substance to use the pathway."; return; }
+    // AB Tier 2 does NOT derive soil→GW guidelines for inorganics/metals (requires site-specific GW sampling).
+    if ($("jur").value === "AB" && DB.substances[name] && DB.substances[name].cls === "metal") {
+      var w = document.createElement("div"); w.style.color = "#c60";
+      w.textContent = "⚠ AB Tier 2 does not derive soil→groundwater guidelines for inorganics/metals — assess by site-specific groundwater sampling. Enter the observed C₀ directly, or switch framework.";
+      out.appendChild(w);
+      $("c0").readOnly = false; $("c0").style.background = "";   // let user enter observed C₀
+      return;
+    }
+    if ($("c0")) { $("c0").readOnly = true; $("c0").style.background = "#eef3f8"; } // pathway derives C₀
     var e = DB.substances[name], pH = num("pH"), c = chemFor(name);
     var hlD = (c.hl_yr != null) ? c.hl_yr * 365.25 : null;   // A-6 gives one half-life (yr)→days
     var sub = { name: name, cls: c.cls,
@@ -633,6 +642,11 @@ require([
     // continuous fine-grained layer ≥1 m overlying the aquifer.
     if (jur === "AB" && abTexture === "coarse" && $("abFineLayer") && $("abFineLayer").checked) { $("I").value = AB_FINE.I; }
   }
+  function setMode(m) {
+    mode = m;
+    Array.prototype.forEach.call($("modeSeg").children, function (x) { x.classList.toggle("on", x.getAttribute("data-mode") === m); });
+    $("timeWrap").style.display = (m === "transient") ? "block" : "none";
+  }
   // Master framework driver: selecting a framework aligns ALL inputs + the compliance standard.
   function onJur() {
     var jur = $("jur").value, active = jur !== "manual";
@@ -655,6 +669,8 @@ require([
       $("abC2Note").textContent = "⚠ AB Table C-2 — linked parameters must be adjusted TOGETHER as a group: if you change one, change all in its group. (1) Soil properties: ρb, moisture, total/air/water porosity. (2) Source dimensions: X, Y, depth-to-contam., thickness, depth-to-GW. (3) Hydrogeology: K + i. Independent (vary alone): foc, distance to receptor. Inputs here are free-edit — apply this rule manually.";
     }
     syncComplianceToFramework(jur);   // align the compliance standard to the framework
+    if (jur === "AB") { setMode("transient"); if (num("t") !== 500) $("t").value = 500; } // AB DF4 = transient t=500 yr
+    else if (jur === "BC") { setMode("steady"); }                                          // BC GPM = steady-state
     onContaminant();                  // refresh R / half-life (AB uses A-6 chemistry)
     run();
   }
