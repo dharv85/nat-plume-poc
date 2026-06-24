@@ -45,12 +45,15 @@ var CASES = [
   { name: "Ethylbenzene", swqg: 0.0016, pub: { coarse: 0.14,  fine: 0.073 } },
   { name: "Xylenes",      swqg: 0.02,   pub: { coarse: 1.9,   fine: 0.99  } },
   { name: "Naphthalene",  swqg: 0.47,   pub: { coarse: 53,    fine: 28    } },
+  // Chlorinated solvents (Potable GW guideline; their Table 2 "Lowest" coarse is the aquatic value)
+  { name: "Trichloroethylene",   swqg: 0.005, pub: { coarse: 0.093, fine: 0.054 } },
+  { name: "Tetrachloroethylene", swqg: 0.01,  pub: { coarse: 0.46,  fine: 0.26  } },
 ];
 
 console.log("AB Tier 1 reconciliation — tool DF chain vs published 'Protection of Domestic Use Aquifer'");
 console.log("(drinking-water) soil guideline. DW pathway → Zd = 2 m fixed, x = 0 (DF4 = 1).\n");
-console.log("case                  tex     DF1      DF2    DF3     SWQG    tool SRG   published   %diff");
-console.log("-".repeat(86));
+console.log("case                       tex     DF1      DF2    DF3     SWQG    tool SRG   published   %diff");
+console.log("-".repeat(91));
 var fails = 0, n = 0;
 CASES.forEach(function (c) {
   ["fine", "coarse"].forEach(function (tex) {
@@ -61,7 +64,7 @@ CASES.forEach(function (c) {
     var flag = Math.abs(pct) <= 15 ? "ok" : "CHECK";
     if (Math.abs(pct) > 15) fails++; n++;
     console.log(
-      c.name.padEnd(15) + " " + tex.padEnd(7) +
+      c.name.padEnd(20) + " " + tex.padEnd(7) +
       " " + r.DF1.toExponential(2) + " " + r.DF2.toFixed(2) + "  " + r.DF3.toFixed(2).padStart(6) +
       "  " + String(c.swqg).padStart(7) + "   " + r.SRG_GR.toPrecision(3).padStart(8) +
       "   " + String(pub).padStart(8) + "   " + (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%  " + flag);

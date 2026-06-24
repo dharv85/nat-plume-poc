@@ -3,9 +3,9 @@
 Branch `alberta-model` · 2026-06-24 · closes roundtable finding #7 for the drinking-water pathway.
 Harness: **`ab_tier1_reconcile.js`** (`node ab_tier1_reconcile.js`).
 
-## Result — ✅ 10/10 within 1–3%
+## Result — ✅ 14/14 within 1–3%
 The tool reproduces the **published Alberta Tier 1 drinking-water soil remediation guidelines** for all
-BTEX + naphthalene, fine and coarse, to within **1–3%**:
+BTEX + naphthalene + the chlorinated solvents TCE/PCE, fine and coarse, to within **1–3%**:
 
 | Contaminant | Texture | Tool SRG (mg/kg) | Published DUA (mg/kg) | %diff |
 |---|---|---|---|---|
@@ -14,6 +14,8 @@ BTEX + naphthalene, fine and coarse, to within **1–3%**:
 | Ethylbenzene | fine / coarse | 0.0725 / 0.137 | 0.073 / 0.14 | −1% / −2% |
 | Xylenes | fine / coarse | 0.976 / 1.85 | 0.99 / 1.9 | −1% / −3% |
 | Naphthalene | fine / coarse | 27.1 / 51.7 | 28 / 53 | −3% / −2% |
+| Trichloroethylene (TCE) | fine / coarse | 0.0536 / 0.0913 | 0.054 / 0.093 | −1% / −2% |
+| Tetrachloroethylene (PCE) | fine / coarse | 0.253 / 0.457 | 0.26 / 0.46 | −3% / −1% |
 
 The small (~1–3%) consistent low bias is rounding of the published values + chemistry constants — not a
 structural error. This is a genuine cell-for-cell reconciliation of the soil→groundwater DF chain.
@@ -47,9 +49,10 @@ at the Tier 1 default inputs:
 
 ## What this validates / what remains
 - ✅ **DF1·DF2·DF3 chain, partition chemistry (A-6 Koc), Zd = 2 m DW mixing zone, and unit handling are
-  correct** for the petroleum-hydrocarbon drinking-water pathway — the SLR/Suncor priority class.
-- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m), **PHC
-  fractions, and chlorinateds (TCE/PCE)** not yet in this table — extend `CASES` and re-run.
+  correct** across **both petroleum hydrocarbons (BTEX/naphthalene) and chlorinated solvents (TCE/PCE)**
+  for the drinking-water pathway — covering the SLR/Suncor priority classes.
+- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m) and **PHC
+  fractions** not yet in this table — extend `CASES` and re-run.
 - ◐ **Metals** remain excluded by design (AB does not model soil→GW for inorganics).
 - ◐ **Formal sign-off:** confirm with Emma and reproduce against the **official AEPA Tier 2 calculator**;
   the published Tier 1 tables are the proxy used here. Standard attribution cited to Table A-2 / B-2.
