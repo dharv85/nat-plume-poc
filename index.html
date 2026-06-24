@@ -245,6 +245,29 @@ require([
 
   // manual R / half-life inputs appear only in manual mode
   var manualR = 2.0, manualHL = 2.0;
+  // AB Table A-6 chemical override: when AB framework is selected, source Koc/H'/solubility/half-life
+  // from A-6 instead of BC Protocol 28 (they differ materially — see AB_DEFAULTS_VALIDATION.md).
+  // Metals stay on the BC DB (A-6 has no Koc for inorganics).
+  var AB6 = null;
+  fetch("ab_a6.json").then(function (r) { return r.json(); }).then(function (a) { AB6 = a; onContaminant(); if (viewReady) run(); }).catch(function () {});
+  function chemFor(name) {
+    var e = DB.substances[name];
+    if ($("jur").value === "AB" && AB6 && AB6.substances[name] && e.cls !== "metal") {
+      var a = AB6.substances[name];
+      return { koc: a.koc, henry: a.henry, sol_ug_L: a.sol_mg_L * 1000, hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: e.cls, src: "AB A-6" };
+    }
+    return { koc: (e.koc != null ? e.koc : null), henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
+      hl_yr: (e.t_half_sat_d ? e.t_half_sat_d / 365.25 : null), cls: e.cls, src: "BC P28" };
+  }
+  function retardationFor(name, foc, rhob, n, pH) {
+    var c = chemFor(name);
+    if (c.cls === "metal") return NATEngine.retardation(name, foc, rhob, n, pH); // metals: BC pH-Kd
+    return 1 + (rhob / n) * ((c.koc || 0) * foc);
+  }
+  function soilProps() { // rhob, n from the active framework defaults (else BIOSCREEN generic)
+    var active = $("jur").value !== "manual";
+    return { rhob: (active && $("rhob")) ? num("rhob") : 1.7, n: (active && $("n")) ? num("n") : 0.36 };
+  }
   function onContaminant() {
     var name = $("sub").value, d = $("derived");
     if (name.indexOf("manual") === 0) {
@@ -252,10 +275,11 @@ require([
       return;
     }
     try {
-      var R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH"));
-      var hl = NATEngine.halfLifeYears(name, "sat");
+      var s = soilProps(), c = chemFor(name);
+      var R = retardationFor(name, num("foc"), s.rhob, s.n, num("pH"));
+      var hl = c.hl_yr;
       d.textContent = "";
-      d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr")));
+      d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr") + "  [" + c.src + "]"));
     } catch (e) { d.textContent = e.message; }
   }
   ["sub", "foc", "pH"].forEach(function (id) { $(id).addEventListener("change", function () { onContaminant(); updateStandard(); run(); }); });
@@ -284,7 +308,7 @@ require([
   function buildModel() {
     var name = $("sub").value, R, hl;
     if (name.indexOf("manual") === 0) { R = manualR; hl = manualHL; }
-    else { R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH")); hl = NATEngine.halfLifeYears(name, "sat"); }
+    else { var s = soilProps(); R = retardationFor(name, num("foc"), s.rhob, s.n, num("pH")); hl = chemFor(name).hl_yr; }
     return { C0: num("c0"), v: num("v"), alpha_x: num("ax"), alpha_y: num("ay"), alpha_z: num("az"),
       Y: num("Y"), Z: num("Z"), R: R, half_life_yr: hl,
       water_table_source: $("wt").checked };
@@ -548,11 +572,12 @@ require([
     if ($("jur").value === "manual") return;
     var name = $("sub").value;
     if (name.indexOf("manual") === 0 || !DB) { out.textContent = "Select a database substance to use the pathway."; return; }
-    var e = DB.substances[name], pH = num("pH");
-    var sub = { name: name, cls: e.cls, koc: (e.koc != null ? e.koc : null),
-      kd: (e.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: (e.henry || 0),
-      t_half_unsat_d: e.t_half_unsat_d, t_half_sat_d: e.t_half_sat_d,
-      solubility_ug_L: (e.solubility_ug_L != null ? e.solubility_ug_L : Infinity),
+    var e = DB.substances[name], pH = num("pH"), c = chemFor(name);
+    var hlD = (c.hl_yr != null) ? c.hl_yr * 365.25 : null;   // A-6 gives one half-life (yr)→days
+    var sub = { name: name, cls: c.cls, koc: c.koc,
+      kd: (c.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: c.henry,
+      t_half_unsat_d: (c.src === "AB A-6" ? hlD : e.t_half_unsat_d), t_half_sat_d: (c.src === "AB A-6" ? hlD : e.t_half_sat_d),
+      solubility_ug_L: (c.sol_ug_L != null ? c.sol_ug_L : Infinity),
       detection_limit_ug_g: null, background_ug_g: null, standards: {} };
     var sp = NATSoilToGW.jurisdictionDefaults($("jur").value === "AB" ? "AB" : "BC");
     sp.foc = num("foc"); sp.n = num("n"); sp.nw = num("nw"); sp.ne = num("ne"); sp.rho_b = num("rhob");
@@ -607,6 +632,7 @@ require([
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
     if (active) populateDefaults(jur);
     syncComplianceToFramework(jur);   // align the compliance standard to the framework
+    onContaminant();                  // refresh R / half-life (AB uses A-6 chemistry)
     run();
   }
   // Align the compliance-standard family to the chosen framework (BC→BC CSR, AB→AB GW Tier 2).

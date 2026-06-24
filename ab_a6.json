@@ -1,0 +1,12 @@
+{
+  "_source": "AB Tier 2 Guidelines 2024-06, Appendix A Table A-6 (Chemical Parameters). Values transcribed + verified vs the PDF for the modelled contaminants. VERIFY with Emma before regulatory use. Chlorinated solvents carry NO half-life in A-6 (non-degrading / conservative).",
+  "units": { "koc": "mL/g", "henry": "dimensionless", "sol_mg_L": "mg/L", "half_life_yr": "year" },
+  "substances": {
+    "Benzene":             { "koc": 81,  "henry": 0.225, "sol_mg_L": 1780, "half_life_yr": 1.0,   "src": "EC2005a; sol Gustafson1997; hl BCMELP1996" },
+    "Toluene":             { "koc": 234, "henry": 0.274, "sol_mg_L": 515,  "half_life_yr": 0.288, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Ethylbenzene":        { "koc": 537, "henry": 0.358, "sol_mg_L": 152,  "half_life_yr": 0.312, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Xylenes":             { "koc": 586, "henry": 0.252, "sol_mg_L": 198,  "half_life_yr": 0.501, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Trichloroethylene":   { "koc": 94,  "henry": 0.422, "sol_mg_L": 1100, "half_life_yr": null,  "src": "USEPA1996a" },
+    "Tetrachloroethylene": { "koc": 265, "henry": 0.754, "sol_mg_L": 200,  "half_life_yr": null,  "src": "USEPA1996a" }
+  }
+}
