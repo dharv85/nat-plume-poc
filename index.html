@@ -254,9 +254,10 @@ require([
     var e = DB.substances[name];
     if ($("jur").value === "AB" && AB6 && AB6.substances[name] && e.cls !== "metal") {
       var a = AB6.substances[name];
-      return { koc: a.koc, henry: a.henry, sol_ug_L: a.sol_mg_L * 1000, hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: e.cls, src: "AB A-6" };
+      return { koc: a.koc, henry: a.henry, sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null), hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: e.cls, src: "AB A-6" };
     }
-    return { koc: (e.koc != null ? e.koc : null), henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
+    var pHv = $("pH") ? num("pH") : 6.5; // BC: NATEngine.koc handles pH-dependent isotherms (e.g. PCP)
+    return { koc: NATEngine.koc(name, pHv), henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
       hl_yr: (e.t_half_sat_d ? e.t_half_sat_d / 365.25 : null), cls: e.cls, src: "BC P28" };
   }
   function retardationFor(name, foc, rhob, n, pH) {

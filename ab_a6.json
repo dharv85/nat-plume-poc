@@ -1,12 +1,26 @@
 {
-  "_source": "AB Tier 2 Guidelines 2024-06, Appendix A Table A-6 (Chemical Parameters). Values transcribed + verified vs the PDF for the modelled contaminants. VERIFY with Emma before regulatory use. Chlorinated solvents carry NO half-life in A-6 (non-degrading / conservative).",
+  "_source": "AB Tier 2 Guidelines 2024-06, Appendix A Table A-6 (Chemical Parameters). Values transcribed + verified against the PDF, line-by-line, for the contaminants in the tool DB. VERIFY with Emma before regulatory use. sol_mg_L null = miscible (no solubility cap). Chlorinated/PAHs carry no half-life in A-6 (non-degrading / conservative).",
   "units": { "koc": "mL/g", "henry": "dimensionless", "sol_mg_L": "mg/L", "half_life_yr": "year" },
+  "notes": {
+    "Pentachlorophenol": "A-6 lists a single Koc (2500); BC Protocol 28 uses a pH-dependent Koc isotherm — confirm approach with Emma.",
+    "skipped": "Diisopropanolamine (A-6 gives mean Kd not Koc, ***), PFOS (column alignment uncertain), Nonylphenol+ethox. (no clear A-6 row) — not overridden; stay on BC P28."
+  },
   "substances": {
-    "Benzene":             { "koc": 81,  "henry": 0.225, "sol_mg_L": 1780, "half_life_yr": 1.0,   "src": "EC2005a; sol Gustafson1997; hl BCMELP1996" },
-    "Toluene":             { "koc": 234, "henry": 0.274, "sol_mg_L": 515,  "half_life_yr": 0.288, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Ethylbenzene":        { "koc": 537, "henry": 0.358, "sol_mg_L": 152,  "half_life_yr": 0.312, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Xylenes":             { "koc": 586, "henry": 0.252, "sol_mg_L": 198,  "half_life_yr": 0.501, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Trichloroethylene":   { "koc": 94,  "henry": 0.422, "sol_mg_L": 1100, "half_life_yr": null,  "src": "USEPA1996a" },
-    "Tetrachloroethylene": { "koc": 265, "henry": 0.754, "sol_mg_L": 200,  "half_life_yr": null,  "src": "USEPA1996a" }
+    "Benzene":             { "koc": 81,      "henry": 0.225,    "sol_mg_L": 1780,  "half_life_yr": 1.0,   "src": "EC2005a; sol Gustafson1997; hl BCMELP1996" },
+    "Toluene":             { "koc": 234,     "henry": 0.274,    "sol_mg_L": 515,   "half_life_yr": 0.288, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Ethylbenzene":        { "koc": 537,     "henry": 0.358,    "sol_mg_L": 152,   "half_life_yr": 0.312, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Xylenes":             { "koc": 586,     "henry": 0.252,    "sol_mg_L": 198,   "half_life_yr": 0.501, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
+    "Trichloroethylene":   { "koc": 94,      "henry": 0.422,    "sol_mg_L": 1100,  "half_life_yr": null,  "src": "USEPA1996a" },
+    "Tetrachloroethylene": { "koc": 265,     "henry": 0.754,    "sol_mg_L": 200,   "half_life_yr": null,  "src": "USEPA1996a" },
+    "Naphthalene":         { "koc": 708,     "henry": 0.020441, "sol_mg_L": 31.7,  "half_life_yr": null,  "src": "CCME2010; Da USEPA1996a" },
+    "Anthracene":          { "koc": 19953,   "henry": 0.0015,   "sol_mg_L": 0.057, "half_life_yr": null,  "src": "CCME2010" },
+    "Benzo(a)pyrene":      { "koc": 2187762, "henry": 0.0000478,"sol_mg_L": 0.0016,"half_life_yr": null,  "src": "CCME2010" },
+    "Fluoranthene":        { "koc": 41687,   "henry": 0.000609, "sol_mg_L": 0.26,  "half_life_yr": null,  "src": "CCME2010" },
+    "Phenol":              { "koc": 12,      "henry": 0.000016, "sol_mg_L": 87000, "half_life_yr": null,  "src": "CCME1999" },
+    "Pentachlorophenol":   { "koc": 2500,    "henry": 0.000001, "sol_mg_L": 14,    "half_life_yr": null,  "src": "ORNL2006 (single Koc — see notes)" },
+    "DDT (total)":         { "koc": 794328,  "henry": 0.00034,  "sol_mg_L": 0.0055,"half_life_yr": null,  "src": "EC1999a; ORNL2006" },
+    "Methanol":            { "koc": 0.27,    "henry": 0.0002,   "sol_mg_L": null,  "half_life_yr": 0.67,  "src": "CCME2017 (miscible)" },
+    "Ethylene glycol":     { "koc": 0.0072,  "henry": 0.0000025,"sol_mg_L": null,  "half_life_yr": null,  "src": "EC1999b (miscible)" },
+    "Sulfolane":           { "koc": 1.2,     "henry": 0.000000036,"sol_mg_L": null,"half_life_yr": null,  "src": "CCME2006c (miscible)" }
   }
 }
