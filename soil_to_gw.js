@@ -74,15 +74,18 @@
     else { var s = da * (1 - Math.exp(-(X * I) / (V * da))); dm = Math.min(0.1 * X + s, da); }
     return 1 + (dm * V) / (X * I);
   }
-  // abMode: AB Tier 1 ignores effective porosity ne (a BC-only parameter) — the saturated-zone seepage
-  // velocity uses TOTAL porosity θt (= sp.n), per AB Tier 1 p134 (v = V/(θt·Rs)) and Table C-2. BC keeps
-  // ne (validated). NOTE: with θt the aquatic DF4 over-predicts the published AB Tier 1 values for
-  // biodegraders (~2×) — see AB_DF4_HANDOFF.md; the residual is flagged for Craig + the official calculator.
+  // abMode applies the two AB Tier 1 (p134–135) saturated-transport conventions that differ from BC:
+  //   1. velocity uses TOTAL porosity θt (= sp.n), v = V/(θt·Rs); ne is BC-only (Table C-2 lists no ne).
+  //   2. the decay constant carries a water-table-depth factor: Ls = 0.6931·e^(−0.07·d)/t½  (d = sp.d).
+  //      BC uses the plain λ = 0.6931/t½ (no depth factor). This factor was the cause of the ~2× DF4
+  //      over-prediction; with it, the AB Tier 1 aquatic guidelines reconcile to within ~8%.
+  // BC path (no abMode) is byte-identical to Craig's validated module.
   function fSaturated(sub, sp, steady, tYr, abMode) {
     if (steady === undefined) steady = true; if (tYr === undefined) tYr = 500.0;
     var x = sp.x_poc; if (x <= 0) return 1.0;
     var alphaX = 0.1 * x, alphaY = 0.01 * x, Rf = retardation(sub, sp, sp.n);
     var v = V_m_yr(sp) / (abMode ? sp.n : sp.ne), vp = v / Rf, lam = lambdaPerYr(sub.t_half_sat_d);
+    if (abMode) lam *= Math.exp(-0.07 * sp.d);   // AB Ls = 0.6931·e^(−0.07·d)/t½ (p134–135); d = water-table depth
     var root = Math.sqrt(1 + 4 * lam * alphaX / vp);
     var longitudinal = Math.exp((x / (2 * alphaX)) * (1 - root));
     if (!steady) longitudinal *= 0.5 * erfc((x - vp * tYr * root) / (2 * Math.sqrt(alphaX * vp * tYr)));

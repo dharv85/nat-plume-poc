@@ -133,15 +133,15 @@ AQ.forEach(function (c) {
       "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
   });
 });
-console.log("\nReading of Parts A + B (see AB_DF4_HANDOFF.md):");
-console.log("- DF1·DF2·DF3 (soil→GW) reconciles for ALL contaminants (Part A 12/12; non-degraders PCE/");
-console.log("  naphthalene match the FULL chain to 0–2% — confirming DF4≈1 and the chain together).");
-console.log("- DF4 fixes APPLIED: AB now uses TOTAL porosity θt (ne is BC-only, per Emma + Table C-2 /");
-console.log("  p134 v=V/(θt·Rs)); TCE saturated half-life null→2.19 yr (Table C-6) → TCE coarse −92%→+7%.");
-console.log("- DF4 RESIDUAL (flagged for Craig): with the documented θt method, biodegrader DF4 now OVER-");
-console.log("  predicts published ~2× (ne under-, θt over-; published sits between). Ruled out porosity,");
-console.log("  steady-vs-transient, transverse factor → residual is in the longitudinal decay term; needs");
-console.log("  the official AB Tier 2 calculator. DUA/livestock/irrigation (x=0→DF4=1) unaffected.");
+console.log("\nReading of Parts A + B — aquatic pathway RECONCILED (see AB_DF4_NOTES.md):");
+console.log("- Full chain within +0% to +14% for ALL contaminants (mostly ≤6%); Part A (soil→GW) 12/12.");
+console.log("- Three AB-specific DF4 fixes vs the BC formulation (all p134–135, Craig-authorized):");
+console.log("    1. velocity uses TOTAL porosity θt, not ne (ne is BC-only; Table C-2 / v=V/(θt·Rs));");
+console.log("    2. decay constant Ls = 0.6931·e^(−0.07·d)/t½ — the e^(−0.07·d) water-table-depth factor");
+console.log("       was MISSING (BC uses plain 0.6931/t½); this was the cause of the ~2× over-prediction;");
+console.log("    3. TCE saturated half-life null→2.19 yr (Table C-6).");
+console.log("- Non-degraders (PCE, naphthalene) DF4=1 (t½ null) — unaffected. DUA/livestock/irrigation");
+console.log("  use x=0→DF4=1. BC path byte-identical (engine.test.js 1e-9).");
 
 // ============================================================================================
 // PHC fractions (F1–F4). Labs report LUMPED F1–F4, but AB derives the lumped Tier 1 guideline

@@ -94,14 +94,14 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
    Added opt-in `abMix`; `abSoilGuideline` + UI AB path now use it; BC byte-identical (engine.test.js
    still 1e-9). Aquatic reconciliation 12/12 to 1–3%. Also corrects livestock/irrigation/wildlife.
 
-**HIGH (found during aquatic full-chain reconciliation, 2026-06-24; partly fixed, Craig-authorized)**
-8. **DF4 lateral-transport term — fixes applied, residual flagged → `AB_DF4_HANDOFF.md`.** APPLIED:
-   (a) AB now uses **total porosity θt**, not ne (ne is BC-only, per Emma + Table C-2 / p134); (b) **TCE
-   half-life null → 2.19 yr** (Table C-6) → TCE coarse −92%→+7%. RESIDUAL: with the documented θt method,
-   biodegrader DF4 over-predicts the published values ~2× (ne under-, θt over-; published between). Ruled
-   out porosity, steady/transient, transverse factor → residual is in the longitudinal **decay term** of
-   the frozen Domenico DF4. Needs the **official AB Tier 2 calculator** to close (Craig). Soil→GW chain +
-   non-degraders (PCE, naphthalene) reconcile; DUA/livestock/irrigation (x=0→DF4=1) unaffected.
+**RESOLVED (aquatic full-chain reconciliation, 2026-06-24; Craig-authorized) → `AB_DF4_NOTES.md`**
+8. ✅ **DF4 lateral-transport term — RECONCILED to +0…+14% (mostly ≤6%).** Root cause was a **BC-vs-AB
+   confusion in the biodegradation decay term, not a math error**. Three AB-specific fixes (p134–135):
+   (a) velocity uses **total porosity θt**, not ne (BC-only; Table C-2); (b) decay constant
+   **Ls = 0.6931·e^(−0.07·d)/t½** — the tool was missing the `e^(−0.07·d)` water-table-depth factor that
+   caused the ~2× over-prediction (BC uses plain 0.6931/t½); (c) **TCE half-life null→2.19 yr** (Table
+   C-6). BC byte-identical (engine.test.js 1e-9); DUA 14/14; non-degraders & livestock/irrigation
+   unaffected. Confirm with Emma: d = water-table depth = 3 m (Tier 1 default) + TCE 2.19 yr.
 9. ✅ RESOLVED — DF4 applied only for AQUATIC/WILDLIFE — **confirmed correct** vs AB (p132: x = 10 m for
    aquatic/wildlife → DF4 active; x = 0 → DF4 = 1 for potable/livestock/irrigation). Tool matches.
 10. F1/F2 → sub-fraction half-life mapping needs a cited basis — document; Emma confirm.

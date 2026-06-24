@@ -72,16 +72,25 @@ solutes PCE & naphthalene match the *full* chain to 0–2%, proving DF4≈1 and 
 **DF4 (lateral transport) only reconciles for non-degraders** — it diverges for every biodegrading solute
 and for TCE. The divergence is entirely in DF4's biodegradation term.
 
-### DF4 — fixes applied (Craig-authorized); residual flagged → see `AB_DF4_HANDOFF.md`
-**Applied:** (1) AB now uses **total porosity θt** in `fSaturated` — ne is a **BC-only** parameter (per
-Emma + Table C-2, which lists only θt; p134 `v = V/(θt·Rs)`); BC keeps ne (byte-identical, 1e-9).
-(2) **TCE saturated half-life null → 2.19 yr** (Table C-6, CCME) → TCE coarse went −92% → **+7%**.
-**Residual (for Craig + the official calculator):** with the documented θt method, biodegrader DF4 now
-**over-predicts** the published values ~2× (ne under-predicted, θt over-predicts — published sits
-between). Ruled out: porosity convention, steady-vs-transient (identical), transverse factor (would break
-the non-degraders). The residual is in the **longitudinal decay term** of the frozen Domenico DF4 → needs
-the **official AB Tier 2 calculator** to pin the equation/half-lives. DUA/livestock/irrigation
-(x = 0 → DF4 = 1) and all non-degraders (PCE, naphthalene) are unaffected and reconcile.
+### DF4 — RESOLVED (Craig-authorized) → see `AB_DF4_NOTES.md`. Full chain +0% to +14% (mostly ≤6%)
+The over-prediction was a **BC-vs-AB confusion in the biodegradation decay term, not a math error** (the
+DF4 equation form `4/[exp(A)·erfc(B)·(erf(C)−erf(D))]` is exactly what `fSaturated` implements). Three
+AB-specific fixes (all p134–135, BC byte-identical, `engine.test.js` 1e-9):
+1. **Velocity** uses **total porosity θt** (`v = V/(θt·Rs)`); ne is BC-only (Table C-2).
+2. **Decay constant `Ls = 0.6931·e^(−0.07·d)/t½`** — the tool was missing the **`e^(−0.07·d)`
+   water-table-depth factor** (BC uses plain `0.6931/t½`). This was the cause of the ~2× over-prediction.
+3. **TCE half-life** null → **2.19 yr** (Table C-6).
+
+| Contaminant | full-chain %diff (fine/coarse) |
+|---|---|
+| Benzene | +4% / +3% |
+| Toluene | +14%* / +6% |
+| Ethylbenzene / Xylenes (coarse) | +6% / +5% |
+| TCE | +3% / −0% |
+| PCE, Naphthalene (non-degraders) | ±0–2% |
+
+*Toluene-fine is the degenerate capped case (published 63,000 > the 30,000 cap). DUA/livestock/irrigation
+(x = 0 → DF4 = 1) unaffected. **Aquatic-life pathway now reconciles end-to-end.**
 
 ### 🐞 Engine finding (Part A): DF3 used BC GPM constants, not AB (fixed; needs Craig sign-off)
 The shared `dilutionFactor` computed the mixing zone with **BC GPM constants** (`Zd = 0.1·X +
