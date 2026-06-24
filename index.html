@@ -565,13 +565,16 @@ require([
     else CZ = num("cz_in");
     C0 = CZ / S.dilutionFactor(sp);
     var capped = false; if (isFinite(sol) && C0 > 2 * sol) { C0 = 2 * sol; capped = true; }
-    var C0mg = C0 / 1000, v = sp.K_m_s * sp.i / sp.ne * 3.1536e7;
+    // Seepage velocity porosity is framework-specific: AB Tier 2 uses TOTAL porosity θt
+    // (DF4: v = V/(θt·Rs), p104); BC GPM uses effective porosity ne (Model 4: v = K·i/ne).
+    var velPor = ($("jur").value === "AB") ? sp.n : sp.ne;
+    var C0mg = C0 / 1000, v = sp.K_m_s * sp.i / velPor * 3.1536e7;
     $("c0").value = Number(C0mg.toPrecision(4)); $("v").value = Number(v.toPrecision(4));
     function line(t) { var d = document.createElement("div"); d.textContent = t; out.appendChild(d); }
     if (start === "soil") line("C_L = " + fmt(CL) + " µg/L" + (CL >= sol ? "  (solubility-capped)" : ""));
     line(b <= 0 ? "C_Z = C_L  (source at water table, b ≤ 0 → no unsat. step)" : "C_Z = " + fmt(CZ) + " µg/L");
     line("DF = " + S.dilutionFactor(sp).toFixed(2) + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
-    line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/n_e)");
+    line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/" + ($("jur").value === "AB" ? "θt, total porosity" : "n_e") + ")");
     var fl = rangeFlags();
     if (fl.length) {
       var fw = $("jur").value === "AB" ? "AB Tier 2 C-1 (" + abTexture + ")" : "BC GPM";
@@ -587,6 +590,9 @@ require([
     $("pathBody").style.display = active ? "block" : "none";
     $("abTexRow").style.display = (jur === "AB") ? "block" : "none";       // AB-only soil texture
     if ($("cityRow")) $("cityRow").style.display = (jur === "BC") ? "block" : "none"; // BC-only city I
+    if ($("ne")) { var abNe = (jur === "AB");                              // AB: ne unused (velocity uses θt)
+      $("ne").readOnly = abNe; $("ne").style.background = abNe ? "#eee" : "";
+      $("ne").title = abNe ? "Not used in AB Tier 2 — velocity uses total porosity θt" : ""; }
     $("c0").readOnly = active; $("v").readOnly = active;
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
     if (active) populateDefaults(jur);
