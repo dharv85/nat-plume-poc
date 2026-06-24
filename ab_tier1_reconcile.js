@@ -35,32 +35,41 @@ function sub(name, swqg_ugL) {
     detection_limit_ug_g: null, background_ug_g: null, standards: { DW: swqg_ugL, AW: swqg_ugL } };
 }
 
-// --- Test cases: SWQG (Tier 1 GW guideline, µg/L) + published GW-protection soil guideline (mg/kg) ---
-// published_soil values are from the AB Tier 1 (2024) soil tables — VERIFY the exact pathway column.
+// --- Test cases against the AB Tier 1 "Protection of Domestic Use Aquifer" (DUA = drinking-water)
+//     soil pathway. swqg = the POTABLE groundwater guideline (Table B-2 "Potable" column, mg/L,
+//     texture-independent) — NOT the Table 2 "Lowest Guideline" (which is the aquatic value for
+//     naphthalene/toluene-coarse). pub = published DUA soil guideline (Tables A-2 cols 8/9, mg/kg). ---
 var CASES = [
-  { name: "Benzene",             swqg: 5,    use: "DW", pub: { coarse: 0.046, fine: 0.078 }, verify: true },
-  { name: "Trichloroethylene",   swqg: 5,    use: "DW", pub: { coarse: null,  fine: null  }, verify: true },
-  { name: "Ethylbenzene",        swqg: 1.6,  use: "DW", pub: { coarse: null,  fine: null  }, verify: true },
-  { name: "Naphthalene",         swqg: 0.7,  use: "DW", pub: { coarse: null,  fine: null  }, verify: true },
+  { name: "Benzene",      swqg: 0.005,  pub: { coarse: 0.078, fine: 0.046 } },
+  { name: "Toluene",      swqg: 0.024,  pub: { coarse: 0.95,  fine: 0.52  } },
+  { name: "Ethylbenzene", swqg: 0.0016, pub: { coarse: 0.14,  fine: 0.073 } },
+  { name: "Xylenes",      swqg: 0.02,   pub: { coarse: 1.9,   fine: 0.99  } },
+  { name: "Naphthalene",  swqg: 0.47,   pub: { coarse: 53,    fine: 28    } },
 ];
 
-console.log("AB Tier 1 reconciliation — tool DF chain vs published soil guideline (GW-protection, potable)\n");
-console.log("case                     tex     DF1      DF2    DF3     DF4   tool SRG(mg/kg)  published   %diff");
-console.log("-".repeat(96));
+console.log("AB Tier 1 reconciliation — tool DF chain vs published 'Protection of Domestic Use Aquifer'");
+console.log("(drinking-water) soil guideline. DW pathway → Zd = 2 m fixed, x = 0 (DF4 = 1).\n");
+console.log("case                  tex     DF1      DF2    DF3     SWQG    tool SRG   published   %diff");
+console.log("-".repeat(86));
+var fails = 0, n = 0;
 CASES.forEach(function (c) {
-  ["coarse", "fine"].forEach(function (tex) {
-    var r = S.abSoilGuideline(sub(c.name, c.swqg), sp(tex), WU.DRINKING);
+  ["fine", "coarse"].forEach(function (tex) {
+    var swqg_ugL = c.swqg * 1000;                            // mg/L → µg/L (engine internal unit)
+    var r = S.abSoilGuideline(sub(c.name, swqg_ugL), sp(tex), WU.DRINKING);
     var pub = c.pub[tex];
-    var diff = (pub != null) ? ((r.SRG_GR - pub) / pub * 100).toFixed(0) + "%" : "—";
+    var pct = (r.SRG_GR - pub) / pub * 100;
+    var flag = Math.abs(pct) <= 15 ? "ok" : "CHECK";
+    if (Math.abs(pct) > 15) fails++; n++;
     console.log(
-      c.name.padEnd(24) + " " + tex.padEnd(7) +
+      c.name.padEnd(15) + " " + tex.padEnd(7) +
       " " + r.DF1.toExponential(2) + " " + r.DF2.toFixed(2) + "  " + r.DF3.toFixed(2).padStart(6) +
-      "  " + String(r.DF4).padStart(4) + "   " + r.SRG_GR.toFixed(4).padStart(10) +
-      "    " + (pub != null ? String(pub) : "VERIFY").padStart(8) + "   " + diff.padStart(6));
+      "  " + String(c.swqg).padStart(7) + "   " + r.SRG_GR.toPrecision(3).padStart(8) +
+      "   " + String(pub).padStart(8) + "   " + (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%  " + flag);
   });
 });
+console.log("\n" + (n - fails) + "/" + n + " cases within ±15% of the published AB Tier 1 DUA soil guideline.");
 console.log("\nNotes:");
-console.log("- DW (potable) pathway → DF4 = 1 (x = 0). SWQG in µg/L. SRG = SWQG·DF1·DF2·DF3·DF4 / 1000 → mg/kg.");
-console.log("- 'published' = AB Tier 1 (2024) GW-protection soil guideline — Emma must confirm the exact");
-console.log("  pathway column; values marked VERIFY are not yet populated.");
-console.log("- For a full cell-for-cell sign-off, run the same cases through the official AEPA Tier 2 calculator.");
+console.log("- SWQG = POTABLE GW guideline (Table B-2 'Potable' col, mg/L); published = DUA soil guideline");
+console.log("  (Tables A-2, 'Protection of Domestic Use Aquifer' cols 8/9). Use Potable, NOT Table 2 'Lowest'.");
+console.log("- DW (DUA) pathway: Zd = 2 m fixed (p103), x = 0 → DF4 = 1. SRG = SWQG·DF1·DF2·DF3 (DF1 carries /1000).");
+console.log("- Full cell-for-cell sign-off: confirm with Emma + the official AEPA Tier 2 calculator.");

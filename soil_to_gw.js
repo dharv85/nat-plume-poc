@@ -98,7 +98,11 @@
     if (sub.cls === ContaminantClass.METAL)
       return { applicable: false, reason: "AB Tier 2 does not model soil->GW for inorganics; use site-specific groundwater sampling." };
     var swqg = sub.standards[use];
-    var DF1 = fPartition(sub, sp), DF2 = 1 / fUnsaturated(sub, sp), DF3 = dilutionFactor(sp);
+    // AB drinking-water (Domestic Use Aquifer) pathway fixes the mixing-zone thickness Zd = 2 m
+    // (Alberta Tier 1/2, p103); all other pathways use the calculated mixing zone. Matches the UI
+    // (computePathway) and roundtable finding #2. dilutionFactor's fixedZd arg is backward-compatible.
+    var zd = (use === WaterUse.DRINKING) ? 2 : null;
+    var DF1 = fPartition(sub, sp), DF2 = 1 / fUnsaturated(sub, sp), DF3 = dilutionFactor(sp, zd);
     var DF4 = (use === WaterUse.AQUATIC || use === WaterUse.WILDLIFE) ? 1 / fSaturated(sub, sp, false, 500.0) : 1.0;
     var DF = DF1 * DF2 * DF3 * DF4;
     return { applicable: true, SRG_GR: swqg * DF, DF1: DF1, DF2: DF2, DF3: DF3, DF4: DF4, DF: DF };

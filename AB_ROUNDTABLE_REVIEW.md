@@ -77,10 +77,14 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
    from ρb (C.8.2); lock/co-update the linked groups.
 6. **No vapour-intrusion / CSM scope statement** — prominent banner: groundwater pathway only; volatiles
    (VC, 1,1-DCE, light PHC) require separate vapour-intrusion screening.
-7. ◐ HARNESS BUILT — **Reconciliation vs published Tier 1 values** (`ab_tier1_reconcile.js`,
-   `AB_TIER1_RECONCILIATION.md`): tool DF chain reproduces benzene-coarse GW-protection soil guideline
-   to ~8% (0.042 vs 0.046 mg/kg); SWQG-µg/L unit fix found. Remaining: Emma confirms published-value
-   column attribution; full cell-for-cell still needs the **official Alberta Tier 2 calculator**.
+7. ✅ DONE (DW pathway) — **Reconciliation vs published Tier 1 values** (`ab_tier1_reconcile.js`,
+   `AB_TIER1_RECONCILIATION.md`): tool reproduces the published AB Tier 1 **"Protection of Domestic Use
+   Aquifer" (drinking-water)** soil guidelines for **all BTEX + naphthalene, fine & coarse, to 1–3%
+   (10/10)**. Surfaced + fixed two real issues: `abSoilGuideline()` now applies the DW **Zd = 2 m** fix
+   (was using the calculated zone → ~50% low); and the DUA pathway must use the **Potable** standard
+   (Table B-2), not the Table 2 "Lowest Guideline" (naphthalene's lowest is its *aquatic* value → was
+   500× off). Remaining: extend to aquatic/livestock/irrigation (DF4, x = 10 m), PHC fractions,
+   TCE/PCE; formal sign-off vs the **official AEPA Tier 2 calculator** + Emma.
 
 **MEDIUM**
 8. Velocity uses θt (conservative for guidelines, non-conservative for travel time) — annotate the

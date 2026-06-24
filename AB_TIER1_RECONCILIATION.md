@@ -1,56 +1,60 @@
-# AB Tier 1 reconciliation harness — DF chain vs published guidelines
+# AB Tier 1 reconciliation — DF chain vs published "Protection of Domestic Use Aquifer" soil guidelines
 
-Branch `alberta-model` · 2026-06-24 · closes roundtable finding #7 (to the extent possible without
-the official AEPA calculator). Harness: **`ab_tier1_reconcile.js`** (run: `node ab_tier1_reconcile.js`).
+Branch `alberta-model` · 2026-06-24 · closes roundtable finding #7 for the drinking-water pathway.
+Harness: **`ab_tier1_reconcile.js`** (`node ab_tier1_reconcile.js`).
+
+## Result — ✅ 10/10 within 1–3%
+The tool reproduces the **published Alberta Tier 1 drinking-water soil remediation guidelines** for all
+BTEX + naphthalene, fine and coarse, to within **1–3%**:
+
+| Contaminant | Texture | Tool SRG (mg/kg) | Published DUA (mg/kg) | %diff |
+|---|---|---|---|---|
+| Benzene | fine / coarse | 0.0451 / 0.0772 | 0.046 / 0.078 | −2% / −1% |
+| Toluene | fine / coarse | 0.509 / 0.935 | 0.52 / 0.95 | −2% / −2% |
+| Ethylbenzene | fine / coarse | 0.0725 / 0.137 | 0.073 / 0.14 | −1% / −2% |
+| Xylenes | fine / coarse | 0.976 / 1.85 | 0.99 / 1.9 | −1% / −3% |
+| Naphthalene | fine / coarse | 27.1 / 51.7 | 28 / 53 | −3% / −2% |
+
+The small (~1–3%) consistent low bias is rounding of the published values + chemistry constants — not a
+structural error. This is a genuine cell-for-cell reconciliation of the soil→groundwater DF chain.
 
 ## Method
-The published Alberta Tier 1 **soil** guideline for the groundwater-protection pathway equals the
-DF1–DF4 chain run at the Tier 1 default inputs:
+The published AB Tier 1 **"Protection of Domestic Use Aquifer" (DUA)** soil guideline equals the DF chain
+at the Tier 1 default inputs:
 
-> **SRG = SWQG (GW guideline) × DF1 × DF2 × DF3 × DF4**, evaluated at the Appendix A-2/A-3 defaults.
+> **SRG = SWQG (potable GW guideline) × DF1 × DF2 × DF3 × DF4**
 
-So the tool's `abSoilGuideline()` should reproduce the published soil guideline. The harness computes
-the tool side exactly (DF1–DF4 + SRG) and compares to the published Tier 1 value. Drinking-water
-(potable) pathway → DF4 = 1 (x = 0). **SWQG must be supplied in µg/L** (the engine's internal unit —
-`f_partition` carries the /1000; passing mg/L is a 1000× error, found and fixed during this build).
+- **SWQG** = the **Potable** groundwater guideline (Table B-2 "Potable" column, mg/L), supplied to the
+  engine in **µg/L** (`f_partition` carries the /1000).
+- **DW (DUA) pathway:** mixing-zone thickness **Zd = 2 m fixed** (AB Tier 1/2 p103), point of compliance
+  **x = 0** → DF4 = 1, and DF2 = 1 here (default source at the water table, b = 0).
+- **Published target:** the DUA columns of the AB Tier 1 surface-soil tables (Table A-2, "Protection of
+  Domestic Use Aquifer" Fine/Coarse).
 
-## Result (current run)
-| Case | Texture | DF1 | DF2 | DF3 | DF4 | Tool SRG (mg/kg) | Published | %diff |
-|---|---|---|---|---|---|---|---|---|
-| Benzene | coarse | 5.07e-4 | 1.00 | 16.72 | 1 | **0.0424** | 0.046 (candidate) | **−8%** |
-| Benzene | fine | 5.74e-4 | 1.00 | 9.35 | 1 | 0.0268 | (verify col.) | — |
-| Trichloroethylene | coarse | 6.00e-4 | 1.00 | 16.72 | 1 | 0.0501 | verify | — |
-| Ethylbenzene | coarse | 2.81e-3 | 1.00 | 16.72 | 1 | 0.0751 | verify | — |
-| Naphthalene | coarse | 3.61e-3 | 1.00 | 16.72 | 1 | 0.0423 | verify | — |
+## Two findings the harness surfaced (both now resolved)
+1. **`abSoilGuideline()` was not applying the DW Zd = 2 m fix** (it called the *calculated* mixing zone).
+   The UI's `computePathway` already applied it (finding #2); the guideline-derivation helper now matches
+   — `DF3 = dilutionFactor(sp, use===DRINKING ? 2 : null)`. With the calculated zone the tool was ~50%
+   low; with Zd = 2 m it matches to 1–3%.
+2. **Use the POTABLE standard, not the "Lowest Guideline."** Driving the DUA soil pathway off the Table 2
+   "Lowest Guideline" made naphthalene wrong by ~500× — because naphthalene's lowest guideline
+   (0.001 mg/L) is its *aquatic-life* value, while the DUA pathway uses its **potable** value (0.47 mg/L).
+   For BTEX the two are identical, so only naphthalene exposed it. **Implication for the live tool:** the
+   DW/DUA screen must read the *Potable* standard from EQuIS/AGOL, not the most-stringent overall value.
 
-**Read:** the tool produces GW-protection soil guidelines in the **0.01–0.08 mg/kg** range, matching the
-**published benzene Tier 1 GW-protection values (≈0.015–0.078 mg/kg)**. Benzene-coarse lands within
-**~8%** of a candidate published value (0.046). DF2 = 1 here because the default scenario has the source
-at the water table (b = d − Z = 0 → no unsaturated zone), which is correct.
+## Unit reminder (carries into the UI wiring)
+`abSoilGuideline()` expects the standard in **µg/L**. Passing mg/L is a silent 1000× error.
 
-## ✅ What this validates
-- The **DF1·DF2·DF3 chain and unit handling are correct** to first order — the tool reproduces the
-  right magnitude and one candidate benzene value to ~8%.
-- The **fix found during reconciliation** (SWQG must be in µg/L) is now documented in the harness.
-
-## ⚠️ What still needs closure (for Emma / the official calculator)
-1. **Published-value column attribution.** The AB Tier 1 soil tables have many pathway columns
-   (direct contact, nutrient/energy cycling, GW-protection checks, ×Fine/Coarse). The exact
-   **groundwater-protection** soil-guideline column must be confirmed before the comparison is
-   cell-for-cell. Only benzene-coarse has a *candidate* value populated; the rest are `verify`.
-2. **Fine vs coarse direction.** Coarse (high K/I) gives more mixing dilution → higher soil guideline
-   than fine in the tool; confirm this matches the published Fine/Coarse columns (attribution).
-3. **Official AEPA Tier 2 calculator.** For formal sign-off, run these same cases through the official
-   calculator and match cell-for-cell — the published Tier 1 tables are the proxy used here.
-4. **Half-life inputs.** The harness uses the A-6 saturated half-life for both sat & unsat zones;
-   confirm AB's unsaturated half-life convention (affects DF2 when b > 0).
+## What this validates / what remains
+- ✅ **DF1·DF2·DF3 chain, partition chemistry (A-6 Koc), Zd = 2 m DW mixing zone, and unit handling are
+  correct** for the petroleum-hydrocarbon drinking-water pathway — the SLR/Suncor priority class.
+- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m), **PHC
+  fractions, and chlorinateds (TCE/PCE)** not yet in this table — extend `CASES` and re-run.
+- ◐ **Metals** remain excluded by design (AB does not model soil→GW for inorganics).
+- ◐ **Formal sign-off:** confirm with Emma and reproduce against the **official AEPA Tier 2 calculator**;
+  the published Tier 1 tables are the proxy used here. Standard attribution cited to Table A-2 / B-2.
 
 ## How to extend
-Populate the `pub: { coarse, fine }` values in `ab_tier1_reconcile.js` (CASES) from the confirmed AB
-Tier 1 GW-protection soil-guideline column, add more contaminants (a PHC fraction, PCE), and re-run.
-The harness then prints %diff per case — green within tolerance (say ±15%) is a passing reconciliation.
-
-## Verdict
-The DF chain is **reproducing the published Tier 1 magnitudes correctly** (benzene-coarse ~8%). Full
-cell-for-cell sign-off is gated on **Emma confirming the published-value column attribution** (or a run
-of the official AEPA Tier 2 calculator) — the harness and the tool-side computation are ready for both.
+Add rows to `CASES` (contaminant, potable SWQG mg/L, published DUA fine/coarse). Re-run; each case prints
+%diff and an `ok`/`CHECK` flag at ±15%. For non-DW pathways, switch the `WaterUse` and source the
+matching standard column (Aquatic/Livestock/Irrigation) from Table B-2.
