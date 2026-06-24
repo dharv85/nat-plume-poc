@@ -76,3 +76,32 @@ console.log("- SWQG = POTABLE GW guideline (Table B-2 'Potable' col, mg/L); publ
 console.log("  (Tables A-2, 'Protection of Domestic Use Aquifer' cols 8/9). Use Potable, NOT Table 2 'Lowest'.");
 console.log("- DW (DUA) pathway: Zd = 2 m fixed (p103), x = 0 → DF4 = 1. SRG = SWQG·DF1·DF2·DF3 (DF1 carries /1000).");
 console.log("- Full cell-for-cell sign-off: confirm with Emma + the official AEPA Tier 2 calculator.");
+
+// ============================================================================================
+// PHC fractions (F1–F4). Labs report LUMPED F1–F4, but AB derives the lumped Tier 1 guideline
+// from CCME (2008a) SUB-fraction methodology, and ab_a6.json stores those sub-fractions (no single
+// representative Koc for the lumped fraction). So the lumped F1/F2 guideline is NOT reproducible by a
+// single-substance DF run — this section reports the relationship and FLAGS what's needed, rather
+// than fabricating a representative Koc. F3/F4 have no DUA pathway in AB (published "-": immobile).
+// ============================================================================================
+console.log("\n\n=== PHC fractions (F1–F4) — lumped published vs tool sub-fractions ===");
+console.log("Published DUA soil (Table A-2): F1 1100/2200, F2 1500/2900, F3 '-', F4 '-' (mg/kg, fine/coarse).");
+console.log("Published Potable GW (Table B-2): F1 2.2, F2 1.1 mg/L.\n");
+function subSRG(name, swqg_mgL, tex) {
+  return S.abSoilGuideline(sub(name, swqg_mgL * 1000), sp(tex), WU.DRINKING).SRG_GR;
+}
+// F1: controlling sub-fraction is Aliphatic C6–C8 (most mobile/abundant) — tracks the lumped value.
+console.log("F1 (lumped published 1100/2200):");
+console.log("  tool Aliphatic C6–C8  (controlling) fine=" + subSRG("PHC Aliphatic C6-C8", 2.2, "fine").toPrecision(3) +
+  "  coarse=" + subSRG("PHC Aliphatic C6-C8", 2.2, "coarse").toPrecision(3) + "  → ≈lumped F1 (fine ~-3%, coarse ~-18%)");
+// F2: no single sub-fraction reproduces it — lumped value is a genuine CCME combination.
+console.log("F2 (lumped published 1500/2900):");
+console.log("  tool sub-fraction spread: Aromatic C>12-C16 fine=" + subSRG("PHC Aromatic C>12-C16", 1.1, "fine").toPrecision(3) +
+  "  …  Aliphatic C>10-C12 fine=" + subSRG("PHC Aliphatic C>10-C12", 1.1, "fine").toPrecision(3) +
+  "  → lumped sits between; needs CCME (2008a) fraction weighting");
+console.log("F3 / F4: published DUA = '-' (no groundwater pathway). Tool's C>16 sub-fractions have Koc 1e7–1e13");
+console.log("  → effectively immobile (R huge), consistent with exclusion. ✅ by exclusion.");
+console.log("\n⚠ FLAG (for Emma/Craig): to SCREEN lab-reported lumped F1/F2 against Tier 1, the tool needs");
+console.log("  lumped-fraction entries — either the published F1/F2 guideline directly, or CCME (2008a)");
+console.log("  representative Koc/Henry per fraction. The stored CCME sub-fractions alone cannot reproduce");
+console.log("  the lumped guideline (F1≈controlled by Aliphatic C6–C8; F2 is a true sub-fraction combination).");

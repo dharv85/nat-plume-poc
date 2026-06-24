@@ -44,6 +44,24 @@ at the Tier 1 default inputs:
    For BTEX the two are identical, so only naphthalene exposed it. **Implication for the live tool:** the
    DW/DUA screen must read the *Potable* standard from EQuIS/AGOL, not the most-stringent overall value.
 
+## PHC fractions (F1–F4) — a methodology boundary, flagged not forced
+Labs report **lumped F1–F4**, but AB derives the lumped Tier 1 guideline from **CCME (2008a)
+sub-fraction** methodology, and `ab_a6.json` stores those **sub-fractions** (the A-6/C-6 chemistry table
+leaves Koc/Henry blank for lumped F1/F2 — only a half-life is given). So the lumped F1/F2 guideline is
+**not reproducible by a single-substance DF run**. The harness reports the relationship honestly:
+
+| Fraction | Published DUA (fine/coarse) | Tool result | Status |
+|---|---|---|---|
+| **F1** | 1100 / 2200 | Aliphatic C6–C8 (controlling): 1070 / 1810 | ≈lumped (fine −3%, coarse −18%) |
+| **F2** | 1500 / 2900 | sub-fraction spread 440 … 22,200 — lumped sits between | needs CCME (2008a) weighting |
+| **F3 / F4** | "–" (no GW pathway) | C>16 sub-fractions Koc 1e7–1e13 → immobile | ✅ correct by exclusion |
+
+**⚠ FLAG (Emma/Craig):** to *screen lab-reported lumped F1/F2* against Tier 1, the tool needs
+**lumped-fraction entries** — either the published F1/F2 guideline directly, or CCME (2008a)
+representative Koc/Henry per fraction. The stored sub-fractions alone cannot reproduce the lumped value
+(F1 is ≈controlled by Aliphatic C6–C8; F2 is a genuine sub-fraction combination). This is a real gap for
+AB site work, since site PHC data arrives as lumped F1–F4.
+
 ## Unit reminder (carries into the UI wiring)
 `abSoilGuideline()` expects the standard in **µg/L**. Passing mg/L is a silent 1000× error.
 
@@ -51,8 +69,10 @@ at the Tier 1 default inputs:
 - ✅ **DF1·DF2·DF3 chain, partition chemistry (A-6 Koc), Zd = 2 m DW mixing zone, and unit handling are
   correct** across **both petroleum hydrocarbons (BTEX/naphthalene) and chlorinated solvents (TCE/PCE)**
   for the drinking-water pathway — covering the SLR/Suncor priority classes.
-- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m) and **PHC
-  fractions** not yet in this table — extend `CASES` and re-run.
+- ◐ **PHC fractions:** F3/F4 correctly excluded; F1≈controlling sub-fraction; **lumped F1/F2 need
+  CCME (2008a) lumped entries in the tool** (flagged above) before they can be screened/reconciled.
+- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m) not yet in
+  this table — extend `CASES` and re-run.
 - ◐ **Metals** remain excluded by design (AB does not model soil→GW for inorganics).
 - ◐ **Formal sign-off:** confirm with Emma and reproduce against the **official AEPA Tier 2 calculator**;
   the published Tier 1 tables are the proxy used here. Standard attribution cited to Table A-2 / B-2.
