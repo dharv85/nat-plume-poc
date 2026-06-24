@@ -236,12 +236,23 @@ require([
   // ---- load substance DB, populate picker ----
   fetch("substances.json").then(function (r) { return r.json(); }).then(function (db) {
     NATEngine.setSubstanceDB(db); DB = db;
-    var names = Object.keys(db.substances).sort();
-    names.unshift("(manual: R & half-life below)");
-    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; $("sub").appendChild(o); });
-    $("sub").value = "Benzene";
+    refreshSubstanceList(); $("sub").value = "Benzene";
     onContaminant(); updateStandard();
   }).catch(function (e) { status("Substance DB load failed: " + e.message); });
+  // Picker = BC Protocol 28 DB; + AB-only A-6 contaminants (PHC fractions, VC, etc.) when AB framework active.
+  function refreshSubstanceList() {
+    if (!DB) return;
+    var cur = $("sub").value, names = Object.keys(DB.substances).sort();
+    names.unshift("(manual: R & half-life below)");
+    var abLabel = {};
+    if ($("jur").value === "AB" && AB6) {
+      Object.keys(AB6.substances).filter(function (n) { return !DB.substances[n]; }).sort()
+        .forEach(function (n) { names.push(n); abLabel[n] = true; });
+    }
+    var sel = $("sub"); sel.textContent = "";
+    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n + (abLabel[n] ? " (AB)" : ""); sel.appendChild(o); });
+    sel.value = (names.indexOf(cur) >= 0) ? cur : "Benzene";
+  }
 
   // manual R / half-life inputs appear only in manual mode
   var manualR = 2.0, manualHL = 2.0;
@@ -249,13 +260,15 @@ require([
   // from A-6 instead of BC Protocol 28 (they differ materially — see AB_DEFAULTS_VALIDATION.md).
   // Metals stay on the BC DB (A-6 has no Koc for inorganics).
   var AB6 = null;
-  fetch("ab_a6.json").then(function (r) { return r.json(); }).then(function (a) { AB6 = a; onContaminant(); if (viewReady) run(); }).catch(function () {});
+  fetch("ab_a6.json").then(function (r) { return r.json(); }).then(function (a) { AB6 = a; refreshSubstanceList(); onContaminant(); if (viewReady) run(); }).catch(function () {});
   function chemFor(name) {
     var e = DB.substances[name];
-    if ($("jur").value === "AB" && AB6 && AB6.substances[name] && e.cls !== "metal") {
-      var a = AB6.substances[name];
-      return { koc: a.koc, henry: a.henry, sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null), hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: e.cls, src: "AB A-6" };
+    var a = (AB6 && AB6.substances[name]) ? AB6.substances[name] : null;
+    if ($("jur").value === "AB" && a && (!e || e.cls !== "metal")) {
+      return { koc: a.koc, henry: a.henry, sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null),
+        hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: (e ? e.cls : (a.cls || "petroleum")), src: "AB A-6" };
     }
+    if (!e) return { koc: 0, henry: 0, sol_ug_L: null, hl_yr: null, cls: "petroleum", src: "—" }; // AB-only contaminant w/o AB framework
     var pHv = $("pH") ? num("pH") : 6.5; // BC: NATEngine.koc handles pH-dependent isotherms (e.g. PCP)
     return { koc: NATEngine.koc(name, pHv), henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
       hl_yr: (e.t_half_sat_d ? e.t_half_sat_d / 365.25 : null), cls: e.cls, src: "BC P28" };
@@ -632,6 +645,7 @@ require([
     $("c0").readOnly = active; $("v").readOnly = active;
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
     if (active) populateDefaults(jur);
+    refreshSubstanceList();           // add/remove AB-only contaminants (PHC fractions, VC, …)
     syncComplianceToFramework(jur);   // align the compliance standard to the framework
     onContaminant();                  // refresh R / half-life (AB uses A-6 chemistry)
     run();

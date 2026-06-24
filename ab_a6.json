@@ -1,26 +1,248 @@
 {
-  "_source": "AB Tier 2 Guidelines 2024-06, Appendix A Table A-6 (Chemical Parameters). Values transcribed + verified against the PDF, line-by-line, for the contaminants in the tool DB. VERIFY with Emma before regulatory use. sol_mg_L null = miscible (no solubility cap). Chlorinated/PAHs carry no half-life in A-6 (non-degrading / conservative).",
-  "units": { "koc": "mL/g", "henry": "dimensionless", "sol_mg_L": "mg/L", "half_life_yr": "year" },
-  "notes": {
-    "Pentachlorophenol": "A-6 lists a single Koc (2500); BC Protocol 28 uses a pH-dependent Koc isotherm — confirm approach with Emma.",
-    "skipped": "Diisopropanolamine (A-6 gives mean Kd not Koc, ***), PFOS (column alignment uncertain), Nonylphenol+ethox. (no clear A-6 row) — not overridden; stay on BC P28."
+ "_source": "AB Tier 2 Guidelines 2024-06, Appendix A Table A-6. Verified line-by-line vs PDF. VERIFY with Emma. sol_mg_L null=miscible/none. AB-only entries (not in BC DB) carry 'cls' + appear in the picker only when AB framework is active.",
+ "units": {
+  "koc": "mL/g",
+  "henry": "dimensionless",
+  "sol_mg_L": "mg/L",
+  "half_life_yr": "year"
+ },
+ "notes": {
+  "PHC_fractions": "Aliphatic/aromatic sub-fraction half-lives assigned from the parent CCME PHC fraction (F1 C6-C10 = 1.95 yr, F2 C10-C16 = 4.79 yr, F3/F4 = non-degrading). CONFIRM with Emma.",
+  "Pentachlorophenol": "A-6 single Koc (2500); BC P28 uses pH-dependent isotherm \u2014 confirm.",
+  "skipped": "Diisopropanolamine (mean Kd not Koc), PFOS (col alignment), Nonylphenol (no clean row)."
+ },
+ "substances": {
+  "Benzene": {
+   "koc": 81,
+   "henry": 0.225,
+   "sol_mg_L": 1780,
+   "half_life_yr": 1.0,
+   "src": "EC2005a; Gustafson1997; BCMELP1996"
   },
-  "substances": {
-    "Benzene":             { "koc": 81,      "henry": 0.225,    "sol_mg_L": 1780,  "half_life_yr": 1.0,   "src": "EC2005a; sol Gustafson1997; hl BCMELP1996" },
-    "Toluene":             { "koc": 234,     "henry": 0.274,    "sol_mg_L": 515,   "half_life_yr": 0.288, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Ethylbenzene":        { "koc": 537,     "henry": 0.358,    "sol_mg_L": 152,   "half_life_yr": 0.312, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Xylenes":             { "koc": 586,     "henry": 0.252,    "sol_mg_L": 198,   "half_life_yr": 0.501, "src": "EC2005b; sol Gustafson1997; hl BCMELP1996" },
-    "Trichloroethylene":   { "koc": 94,      "henry": 0.422,    "sol_mg_L": 1100,  "half_life_yr": null,  "src": "USEPA1996a" },
-    "Tetrachloroethylene": { "koc": 265,     "henry": 0.754,    "sol_mg_L": 200,   "half_life_yr": null,  "src": "USEPA1996a" },
-    "Naphthalene":         { "koc": 708,     "henry": 0.020441, "sol_mg_L": 31.7,  "half_life_yr": null,  "src": "CCME2010; Da USEPA1996a" },
-    "Anthracene":          { "koc": 19953,   "henry": 0.0015,   "sol_mg_L": 0.057, "half_life_yr": null,  "src": "CCME2010" },
-    "Benzo(a)pyrene":      { "koc": 2187762, "henry": 0.0000478,"sol_mg_L": 0.0016,"half_life_yr": null,  "src": "CCME2010" },
-    "Fluoranthene":        { "koc": 41687,   "henry": 0.000609, "sol_mg_L": 0.26,  "half_life_yr": null,  "src": "CCME2010" },
-    "Phenol":              { "koc": 12,      "henry": 0.000016, "sol_mg_L": 87000, "half_life_yr": null,  "src": "CCME1999" },
-    "Pentachlorophenol":   { "koc": 2500,    "henry": 0.000001, "sol_mg_L": 14,    "half_life_yr": null,  "src": "ORNL2006 (single Koc — see notes)" },
-    "DDT (total)":         { "koc": 794328,  "henry": 0.00034,  "sol_mg_L": 0.0055,"half_life_yr": null,  "src": "EC1999a; ORNL2006" },
-    "Methanol":            { "koc": 0.27,    "henry": 0.0002,   "sol_mg_L": null,  "half_life_yr": 0.67,  "src": "CCME2017 (miscible)" },
-    "Ethylene glycol":     { "koc": 0.0072,  "henry": 0.0000025,"sol_mg_L": null,  "half_life_yr": null,  "src": "EC1999b (miscible)" },
-    "Sulfolane":           { "koc": 1.2,     "henry": 0.000000036,"sol_mg_L": null,"half_life_yr": null,  "src": "CCME2006c (miscible)" }
+  "Toluene": {
+   "koc": 234,
+   "henry": 0.274,
+   "sol_mg_L": 515,
+   "half_life_yr": 0.288,
+   "src": "EC2005b; Gustafson1997; BCMELP1996"
+  },
+  "Ethylbenzene": {
+   "koc": 537,
+   "henry": 0.358,
+   "sol_mg_L": 152,
+   "half_life_yr": 0.312,
+   "src": "EC2005b; Gustafson1997; BCMELP1996"
+  },
+  "Xylenes": {
+   "koc": 586,
+   "henry": 0.252,
+   "sol_mg_L": 198,
+   "half_life_yr": 0.501,
+   "src": "EC2005b; Gustafson1997; BCMELP1996"
+  },
+  "Trichloroethylene": {
+   "koc": 94,
+   "henry": 0.422,
+   "sol_mg_L": 1100,
+   "half_life_yr": null,
+   "src": "USEPA1996a"
+  },
+  "Tetrachloroethylene": {
+   "koc": 265,
+   "henry": 0.754,
+   "sol_mg_L": 200,
+   "half_life_yr": null,
+   "src": "USEPA1996a"
+  },
+  "Naphthalene": {
+   "koc": 708,
+   "henry": 0.020441,
+   "sol_mg_L": 31.7,
+   "half_life_yr": null,
+   "src": "CCME2010"
+  },
+  "Anthracene": {
+   "koc": 19953,
+   "henry": 0.0015,
+   "sol_mg_L": 0.057,
+   "half_life_yr": null,
+   "src": "CCME2010"
+  },
+  "Benzo(a)pyrene": {
+   "koc": 2187762,
+   "henry": 4.78e-05,
+   "sol_mg_L": 0.0016,
+   "half_life_yr": null,
+   "src": "CCME2010"
+  },
+  "Fluoranthene": {
+   "koc": 41687,
+   "henry": 0.000609,
+   "sol_mg_L": 0.26,
+   "half_life_yr": null,
+   "src": "CCME2010"
+  },
+  "Phenol": {
+   "koc": 12,
+   "henry": 1.6e-05,
+   "sol_mg_L": 87000,
+   "half_life_yr": null,
+   "src": "CCME1999"
+  },
+  "Pentachlorophenol": {
+   "koc": 2500,
+   "henry": 1e-06,
+   "sol_mg_L": 14,
+   "half_life_yr": null,
+   "src": "ORNL2006 (single Koc \u2014 see notes)"
+  },
+  "DDT (total)": {
+   "koc": 794328,
+   "henry": 0.00034,
+   "sol_mg_L": 0.0055,
+   "half_life_yr": null,
+   "src": "EC1999a; ORNL2006"
+  },
+  "Methanol": {
+   "koc": 0.27,
+   "henry": 0.0002,
+   "sol_mg_L": null,
+   "half_life_yr": 0.67,
+   "src": "CCME2017 (miscible)"
+  },
+  "Ethylene glycol": {
+   "koc": 0.0072,
+   "henry": 2.5e-06,
+   "sol_mg_L": null,
+   "half_life_yr": null,
+   "src": "EC1999b (miscible)"
+  },
+  "Sulfolane": {
+   "koc": 1.2,
+   "henry": 3.6e-08,
+   "sol_mg_L": null,
+   "half_life_yr": null,
+   "src": "CCME2006c (miscible)"
+  },
+  "Styrene": {
+   "cls": "petroleum",
+   "koc": 461,
+   "henry": 0.123,
+   "sol_mg_L": 300,
+   "half_life_yr": null,
+   "src": "Gustafson1997"
+  },
+  "Vinyl chloride": {
+   "cls": "chlorinated",
+   "koc": 18.6,
+   "henry": 1.11,
+   "sol_mg_L": 2760,
+   "half_life_yr": null,
+   "src": "USEPA1996a"
+  },
+  "1,1-Dichloroethene": {
+   "cls": "chlorinated",
+   "koc": 65,
+   "henry": 1.07,
+   "sol_mg_L": 2250,
+   "half_life_yr": null,
+   "src": "USEPA1996a"
+  },
+  "1,2-Dichloroethane": {
+   "cls": "chlorinated",
+   "koc": 38,
+   "henry": 0.0401,
+   "sol_mg_L": 8520,
+   "half_life_yr": null,
+   "src": "USEPA1996a"
+  },
+  "PHC Aliphatic C6-C8": {
+   "cls": "petroleum",
+   "koc": 3981,
+   "henry": 50,
+   "sol_mg_L": 5.4,
+   "half_life_yr": 1.95,
+   "src": "CCME2008/2008a; hl=F1"
+  },
+  "PHC Aliphatic C>8-C10": {
+   "cls": "petroleum",
+   "koc": 31623,
+   "henry": 80,
+   "sol_mg_L": 0.43,
+   "half_life_yr": 1.95,
+   "src": "CCME2008/2008a; hl=F1"
+  },
+  "PHC Aliphatic C>10-C12": {
+   "cls": "petroleum",
+   "koc": 251189,
+   "henry": 120,
+   "sol_mg_L": 0.034,
+   "half_life_yr": 4.79,
+   "src": "CCME2008/2008a; hl=F2"
+  },
+  "PHC Aliphatic C>12-C16": {
+   "cls": "petroleum",
+   "koc": 5010000.0,
+   "henry": 520,
+   "sol_mg_L": 0.00076,
+   "half_life_yr": 4.79,
+   "src": "CCME2008/2008a; hl=F2"
+  },
+  "PHC Aliphatic C>16-C21": {
+   "cls": "petroleum",
+   "koc": 631000000.0,
+   "henry": 4900,
+   "sol_mg_L": 2.5e-06,
+   "half_life_yr": null,
+   "src": "CCME2008 (F3)"
+  },
+  "PHC Aliphatic C>21-C34": {
+   "cls": "petroleum",
+   "koc": 10000000000000.0,
+   "henry": 560000.0,
+   "sol_mg_L": null,
+   "half_life_yr": null,
+   "src": "CCME2008 (F3, ~immobile)"
+  },
+  "PHC Aromatic C>8-C10": {
+   "cls": "petroleum",
+   "koc": 1585,
+   "henry": 0.48,
+   "sol_mg_L": 65,
+   "half_life_yr": 1.95,
+   "src": "CCME2008/2008a; hl=F1"
+  },
+  "PHC Aromatic C>10-C12": {
+   "cls": "petroleum",
+   "koc": 2512,
+   "henry": 0.14,
+   "sol_mg_L": 25,
+   "half_life_yr": 4.79,
+   "src": "CCME2008/2008a; hl=F2"
+  },
+  "PHC Aromatic C>12-C16": {
+   "cls": "petroleum",
+   "koc": 5012,
+   "henry": 0.053,
+   "sol_mg_L": 5.8,
+   "half_life_yr": 4.79,
+   "src": "CCME2008/2008a; hl=F2"
+  },
+  "PHC Aromatic C>16-C21": {
+   "cls": "petroleum",
+   "koc": 15849,
+   "henry": 0.013,
+   "sol_mg_L": 0.65,
+   "half_life_yr": null,
+   "src": "CCME2008 (F3)"
+  },
+  "PHC Aromatic C>21-C34": {
+   "cls": "petroleum",
+   "koc": 125893,
+   "henry": 0.00067,
+   "sol_mg_L": 0.0066,
+   "half_life_yr": null,
+   "src": "CCME2008 (F3)"
   }
+ }
 }
