@@ -113,6 +113,10 @@
         <option value="AB">AB Tier 2</option>
       </select>
       <div id="pathBody" style="display:none">
+        <div id="abTexRow" style="display:none">
+          <label>AB soil texture <span class="hint">(Tier 2 Table A-2)</span></label>
+          <div class="seg" id="texSeg"><button data-tex="coarse" class="on">Coarse</button><button data-tex="fine">Fine</button></div>
+        </div>
         <label>Start from (run all, or skip ahead)</label>
         <select id="start">
           <option value="soil">① Soil concentration C_s</option>
@@ -137,8 +141,10 @@
           <div><label>d_a aquifer (m)</label><input id="da" type="number" value="5" step="1"></div>
           <div><label>I infil (m/yr)</label><input id="I" type="number" value="0.55" step="0.05"></div>
         </div>
-        <label>BC infiltration look-up <span class="hint">(44 centres → sets I)</span></label>
-        <select id="city"><option value="">— pick a city —</option></select>
+        <div id="cityRow">
+          <label>BC infiltration look-up <span class="hint">(44 centres → sets I)</span></label>
+          <select id="city"><option value="">— pick a city —</option></select>
+        </div>
         <div class="row">
           <div><label>K (m/s)</label><input id="K" type="number" value="3e-5" step="1e-6"></div>
           <div><label>i gradient</label><input id="igr" type="number" value="0.008" step="0.001"></div>
@@ -359,7 +365,9 @@ require([
     var fams = Object.keys(s.families).sort();
     fillSelect($("fw"), [{ value: "manual", label: "(manual entry)" }].concat(fams.map(function (f) { return { value: f, label: f }; })));
     $("fw").value = fams.indexOf("BC CSR") >= 0 ? "BC CSR" : fams[0];
-    onFw(); run();
+    onFw();
+    syncComplianceToFramework($("jur").value); // if a framework was already chosen, align now
+    run();
   }).catch(function (e) { $("stdout").textContent = "standards load failed: " + e.message; });
   function onFw() {
     if (!STD) return;
@@ -509,8 +517,14 @@ require([
   });
 
   // ---- Source pathway: Steps 1–3 (Soil→Leachate→Mixing → C₀), via validated soil_to_gw.js ----
-  var BC_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-5, igr:0.008, Z:3 };
-  var AB_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-7, igr:0.028, Z:3 };
+  // Framework defaults populate ALL Steps 1–3 inputs. BC = BC GPM App-3 generic.
+  // AB = Tier 2 Appendix A Table A-2 (soil/hydrogeo) + A-3 (site), 2024, Fine vs Coarse soil.
+  // (K stored in m/s; AB A-2 lists 32 m/y fine / 320 m/y coarse → 1.0e-6 / 1.0e-5 m/s.)
+  var BC_DEF    = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55,  K:3e-5,  igr:0.008, Z:3, Y:30 };
+  var AB_COARSE = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.06,  K:1.0e-5, igr:0.028, Z:3, Y:10 };
+  var AB_FINE   = { n:0.47, nw:0.168, ne:0.25, rhob:1.4, dwt:3, dfr:0, Xlen:10, da:5, I:0.012, K:1.0e-6, igr:0.028, Z:3, Y:10 };
+  var abTexture = "coarse"; // AB Tier 1 generic = coarse (conservative/mobile)
+  function frameworkDef(jur) { return jur === "AB" ? (abTexture === "fine" ? AB_FINE : AB_COARSE) : BC_DEF; }
   function fmt(x) { return (x >= 1000) ? Math.round(x).toLocaleString() : Number(x).toPrecision(4); }
   function rangeFlags(sp) {
     var f = []; if (sp.foc < 0.001 || sp.foc > 0.05) f.push("foc");
@@ -549,17 +563,37 @@ require([
     line("DF = " + S.dilutionFactor(sp).toFixed(2) + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
     line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/n_e)");
     var fl = rangeFlags(sp);
-    if (fl.length) { var w = document.createElement("div"); w.style.color = "#c60"; w.textContent = "⚠ outside BC allowable range: " + fl.join(", ") + " (allowed, but flagged)"; out.appendChild(w); }
+    if (fl.length) { var w = document.createElement("div"); w.style.color = "#c60"; w.textContent = "⚠ outside " + ($("jur").value === "AB" ? "AB (BC ranges — AB Appendix C-1 TODO)" : "BC") + " allowable range: " + fl.join(", ") + " (allowed, but flagged)"; out.appendChild(w); }
   }
-  function populateDefaults(jur) { var d = (jur === "AB") ? AB_DEF : BC_DEF; for (var k in d) { if ($(k)) $(k).value = d[k]; } }
+  function populateDefaults(jur) { var d = frameworkDef(jur); for (var k in d) { if ($(k)) $(k).value = d[k]; } }
+  // Master framework driver: selecting a framework aligns ALL inputs + the compliance standard.
   function onJur() {
-    var active = $("jur").value !== "manual";
+    var jur = $("jur").value, active = jur !== "manual";
     $("pathBody").style.display = active ? "block" : "none";
+    $("abTexRow").style.display = (jur === "AB") ? "block" : "none";       // AB-only soil texture
+    if ($("cityRow")) $("cityRow").style.display = (jur === "BC") ? "block" : "none"; // BC-only city I
     $("c0").readOnly = active; $("v").readOnly = active;
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
-    if (active) populateDefaults($("jur").value);
+    if (active) populateDefaults(jur);
+    syncComplianceToFramework(jur);   // align the compliance standard to the framework
     run();
   }
+  // Align the compliance-standard family to the chosen framework (BC→BC CSR, AB→AB GW Tier 2).
+  function syncComplianceToFramework(jur) {
+    if (!STD || jur === "manual") return;
+    var fams = Object.keys(STD.families), pick = null;
+    if (jur === "AB") pick = (fams.indexOf("AB GW Tier 2") >= 0) ? "AB GW Tier 2" : fams.filter(function (f) { return f.indexOf("AB") === 0; })[0];
+    else if (jur === "BC") pick = (fams.indexOf("BC CSR") >= 0) ? "BC CSR" : fams.filter(function (f) { return f.indexOf("BC") === 0; })[0];
+    if (pick) { $("fw").value = pick; onFw(); }
+  }
+  // AB soil-texture toggle (Fine/Coarse) — repopulates AB inputs from Table A-2
+  Array.prototype.forEach.call($("texSeg").children, function (b) {
+    b.addEventListener("click", function () {
+      abTexture = b.getAttribute("data-tex");
+      Array.prototype.forEach.call($("texSeg").children, function (x) { x.classList.toggle("on", x === b); });
+      if ($("jur").value === "AB") { populateDefaults("AB"); run(); }
+    });
+  });
   function onStart() {
     var s = $("start").value;
     $("inSoil").style.display = (s === "soil") ? "block" : "none";
