@@ -85,7 +85,12 @@
     var x = sp.x_poc; if (x <= 0) return 1.0;
     var alphaX = 0.1 * x, alphaY = 0.01 * x, Rf = retardation(sub, sp, sp.n);
     var v = V_m_yr(sp) / (abMode ? sp.n : sp.ne), vp = v / Rf, lam = lambdaPerYr(sub.t_half_sat_d);
-    if (abMode) lam *= Math.exp(-0.07 * sp.d);   // AB Ls = 0.6931·e^(−0.07·d)/t½ (p134–135); d = water-table depth
+    if (abMode) {                                // AB Ls = 0.6931·e^(−0.07·d)/t½ (p134–135); d = water-table depth
+      // Fail loud, not silent: a missing sp.d would otherwise make lam (and the guideline) NaN with no
+      // warning; defaulting it would quietly drop the AB depth factor → BC-like decay. [review guard]
+      if (sp.d == null || isNaN(sp.d)) throw new Error("fSaturated: AB mode (abMode) requires sp.d (water-table depth, m) for the decay factor Ls");
+      lam *= Math.exp(-0.07 * sp.d);
+    }
     var root = Math.sqrt(1 + 4 * lam * alphaX / vp);
     var longitudinal = Math.exp((x / (2 * alphaX)) * (1 - root));
     if (!steady) longitudinal *= 0.5 * erfc((x - vp * tYr * root) / (2 * Math.sqrt(alphaX * vp * tYr)));
