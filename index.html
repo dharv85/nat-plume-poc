@@ -77,6 +77,7 @@
       <div id="timeWrap" style="display:none">
         <label>Simulation time (yr)</label>
         <input id="t" type="number" value="20" step="1" min="0">
+        <div style="font-size:9.5px;color:#8a6d00;background:#fff8e6;border:1px solid #f0d68a;border-radius:4px;padding:3px 5px;margin-top:4px;line-height:1.3">⚠ Transient assumes a <b>continuous, non-depleting source</b> (infinite mass). At t = 500 yr this is the AB Tier 2 <b>regulatory-derivation scenario</b> — not a time-of-travel prediction. For a finite-mass site forecast, set a source half-life.</div>
       </div>
     </fieldset>
 
@@ -169,6 +170,16 @@
       <legend>Compliance standard <span class="demo">DEMO</span></legend>
       <label>Framework</label><select id="fw"></select>
       <label>Table / condition</label><select id="tbl"></select>
+      <div id="wuRow" style="display:none">
+        <label>Water use → point of compliance <span class="hint">AB Tier 2</span></label>
+        <select id="wateruse">
+          <option value="DW">Drinking water (potable) — x = 0</option>
+          <option value="IW">Irrigation (agricultural) — x = 0</option>
+          <option value="LW">Livestock (agricultural) — x = 0</option>
+          <option value="AW">Aquatic life (surface water) — x = 10 m</option>
+          <option value="WW">Wildlife — x = 10 m</option>
+        </select>
+      </div>
       <div id="stdout"></div>
       <div class="hint">Standard for the contaminant selected above. Illustrative values; authoritative standards load from SLR EQuIS.</div>
     </fieldset>
@@ -285,6 +296,10 @@ require([
     var active = $("jur").value !== "manual";
     return { rhob: (active && $("rhob")) ? num("rhob") : 1.7, n: (active && $("n")) ? num("n") : 0.36 };
   }
+  // AB water use → point of compliance x: potable / irrigation / livestock (agricultural) = 0;
+  // aquatic (surface water) / wildlife = 10 m. (AB Tier 2 A-3 / Table 6)
+  function waterUse() { return ($("jur").value === "AB" && $("wateruse")) ? $("wateruse").value : null; }
+  function xPOC() { var wu = waterUse(); if (wu === null) return null; return (wu === "AW" || wu === "WW") ? 10 : 0; }
   function onContaminant() {
     var name = $("sub").value, d = $("derived");
     if (name.indexOf("manual") === 0) {
@@ -434,9 +449,10 @@ require([
   }
   $("fw").addEventListener("change", function () { onFw(); run(); });
   $("tbl").addEventListener("change", function () { updateStandard(); run(); });
+  if ($("wateruse")) $("wateruse").addEventListener("change", run);
 
   // ---- centerline chart (canvas, log-y) ----
-  function plotChart(xs, series, Tc, L, C0) {
+  function plotChart(xs, series, Tc, L, C0, poc) {
     var cv = $("cl"), dpr = window.devicePixelRatio || 1;
     var w = cv.clientWidth, h = cv.clientHeight; cv.width = w*dpr; cv.height = h*dpr;
     var g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
@@ -455,6 +471,10 @@ require([
       g.fillStyle = "#d22"; g.fillText("threshold", w-mr-54, ty-3); }
     series.forEach(function (s) { g.strokeStyle = s.color; g.lineWidth = 2; g.beginPath();
       for (var i = 0; i < xs.length; i++) { var X = px(xs[i]), Y = py(s.values[i]); if (i===0) g.moveTo(X,Y); else g.lineTo(X,Y); } g.stroke(); });
+    // point-of-compliance marker (AB: x by water use)
+    if (poc != null && poc >= 0 && poc <= L) { var xp = px(poc); g.strokeStyle = "#7a3ea8"; g.lineWidth = 1.5; g.setLineDash([3,2]);
+      g.beginPath(); g.moveTo(xp, mt); g.lineTo(xp, mt+ph); g.stroke(); g.setLineDash([]);
+      g.fillStyle = "#7a3ea8"; g.fillText("POC " + poc + "m", xp + 2, mt + 9); }
     // legend
     var leg = $("leg"); leg.textContent = "";
     series.forEach(function (s) { var sp = document.createElement("span"); var i = document.createElement("i"); i.style.background = s.color; sp.appendChild(i); sp.appendChild(document.createTextNode(s.name)); leg.appendChild(sp); });
@@ -522,11 +542,18 @@ require([
       var cl = NATEngine.centerline(p, cxs, t, engine);
       series = [{ name: $("sub").value.indexOf("manual")===0 ? "centerline" : $("sub").value, color: "#1b6ec2", values: cl }];
       reach = NATEngine.plumeLength(cxs, cl, Tc);
-      $("readout").textContent = (engine === "bioscreen_at" ? "BIOSCREEN-AT exact" : "Domenico") +
+      var rd = (engine === "bioscreen_at" ? "BIOSCREEN-AT exact" : "Domenico") +
         " · " + (mode === "transient" ? "t=" + num("t") + " yr" : "steady-state") +
         " · plume to threshold ≈ " + (reach == null ? "> domain" : Math.round(reach) + " m");
+      var xp = xPOC();
+      if (xp != null) {
+        var cPOC = NATEngine.concentration(p, xp, 0, 0, t, engine);
+        rd += "  |  POC (" + $("wateruse").value + ", x=" + xp + " m): " + cPOC.toExponential(2) +
+          " mg/L → " + (cPOC <= Tc ? "PASS" : "EXCEEDS") + " vs " + Tc + " mg/L";
+      }
+      $("readout").textContent = rd;
     }
-    plotChart(cxs, series, Tc, L, C0);
+    plotChart(cxs, series, Tc, L, C0, xPOC());
 
     $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = C0 + " mg/L";
     status("Updated · " + (chainOn ? "chlorinated chain" : engine === "bioscreen_at" ? "exact solver" : "Domenico") + " · map grid " + nx + "×" + ny);
@@ -616,7 +643,9 @@ require([
     else if (start === "CL") CL = num("cl_in");
     if (start === "soil" || start === "CL") CZ = (b <= 0) ? CL : CL * S.fUnsaturated(sub, sp);
     else CZ = num("cz_in");
-    C0 = CZ / S.dilutionFactor(sp);
+    var zdFixed = (waterUse() === "DW") ? 2 : null;   // AB drinking-water pathway: mixing zone Zd = 2 m
+    var DF = S.dilutionFactor(sp, zdFixed);
+    C0 = CZ / DF;
     var capped = false; if (isFinite(sol) && C0 > 2 * sol) { C0 = 2 * sol; capped = true; }
     // Seepage velocity porosity is framework-specific: AB Tier 2 uses TOTAL porosity θt
     // (DF4: v = V/(θt·Rs), p104); BC GPM uses effective porosity ne (Model 4: v = K·i/ne).
@@ -626,7 +655,7 @@ require([
     function line(t) { var d = document.createElement("div"); d.textContent = t; out.appendChild(d); }
     if (start === "soil") line("C_L = " + fmt(CL) + " µg/L" + (CL >= sol ? "  (solubility-capped)" : ""));
     line(b <= 0 ? "C_Z = C_L  (source at water table, b ≤ 0 → no unsat. step)" : "C_Z = " + fmt(CZ) + " µg/L");
-    line("DF = " + S.dilutionFactor(sp).toFixed(2) + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
+    line("DF = " + DF.toFixed(2) + (zdFixed ? " (DW Zd=2m)" : "") + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
     line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/" + ($("jur").value === "AB" ? "θt, total porosity" : "n_e") + ")");
     var fl = rangeFlags();
     if (fl.length) {
@@ -653,6 +682,7 @@ require([
     $("pathBody").style.display = active ? "block" : "none";
     $("abTexRow").style.display = (jur === "AB") ? "block" : "none";       // AB-only soil texture
     if ($("cityRow")) $("cityRow").style.display = (jur === "BC") ? "block" : "none"; // BC-only city I
+    if ($("wuRow")) $("wuRow").style.display = (jur === "AB") ? "block" : "none";      // AB-only water-use POC
     if ($("ne")) { var abNe = (jur === "AB");                              // AB: ne unused (velocity uses θt)
       $("ne").readOnly = abNe; $("ne").style.background = abNe ? "#eee" : "";
       $("ne").title = abNe ? "Not used in AB Tier 2 — velocity uses total porosity θt" : ""; }

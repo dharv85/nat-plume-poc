@@ -32,8 +32,8 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 ## ⚠️ Remaining — engine-level (Craig) / behaviour to confirm
 6. ◐ **AB metals** — tool behaviour DONE (under AB, metals block the soil→GW pathway; message now makes explicit that the **AB GW compliance standard still applies**; C₀ freed for observed entry). **STILL NEEDS EMMA'S RESOLUTION** on the metals workflow + guideline values — see **`AB_METALS_SCREENING.md`** (screening table of all 20 metals vs AB GW guideline values).
 7. ✅ **Saturated transport mode** — DONE: selecting AB sets the plume to **transient, t = 500 yr** (AB DF4); selecting BC sets steady-state (BC GPM). User can still override.
-8. **Mixing-zone Z_d = 2 m for the drinking-water pathway** (calculated for other pathways) — engine always calculates it. Engine-level note, not changed.
-9. **Point of compliance x by water use** — AB varies x (potable/agricultural = 0 m; surface water = 10 m). Tool fixes x_poc = 10. To wire per water use.
+8. ✅ **Mixing-zone Z_d = 2 m for the DW pathway** — DONE: engine `dilutionFactor` now fixes Zd=2 m when the water use is Drinking Water (backward-compatible; other pathways still calculate).
+9. ✅ **Point of compliance x by water use** — DONE: a Water-use selector sets the POC distance — Drinking water / **Irrigation / Livestock (= agricultural)** = x 0; Aquatic (surface water) / Wildlife = x 10 m. Plume shows a POC marker + PASS/EXCEEDS readout at that x.
 
 ## 🧭 Remaining — broader (before regulatory use)
 10. **Workbook/calculator reconciliation** — as with BC GPM, AB results should be validated against Alberta's official Tier 2 calculator / worked examples cell-for-cell before any regulatory use. This tool is screening/visualisation.

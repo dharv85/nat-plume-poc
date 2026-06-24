@@ -58,11 +58,13 @@
     var Ru = 1 + (sp.rho_b / sp.nw) * kdEff(sub, sp), vu = I_m_yr(sp) / sp.nw;
     return Math.exp((b / (2 * alphaU)) * (1 - Math.sqrt(1 + 4 * lam * alphaU * Ru / vu)));
   }
-  function dilutionFactor(sp) {
+  // fixedZd (optional): AB drinking-water pathway fixes the mixing-zone thickness Zd at 2 m
+  // (Alberta Tier 2 / TG13, p103). Omit for all other pathways → Zd is calculated.
+  function dilutionFactor(sp, fixedZd) {
     if (bOf(sp) < 0) return 1.0;
-    var V = V_m_yr(sp), I = I_m_yr(sp), X = sp.X, da = sp.da;
-    var s = da * (1 - Math.exp(-(X * I) / (V * da)));
-    var dm = Math.min(0.1 * X + s, da);
+    var V = V_m_yr(sp), I = I_m_yr(sp), X = sp.X, da = sp.da, dm;
+    if (fixedZd != null && fixedZd > 0) { dm = Math.min(fixedZd, da); }   // DW pathway: Zd = 2 m fixed
+    else { var s = da * (1 - Math.exp(-(X * I) / (V * da))); dm = Math.min(0.1 * X + s, da); }
     return 1 + (dm * V) / (X * I);
   }
   function fSaturated(sub, sp, steady, tYr) {

@@ -62,11 +62,11 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
 ## 3. Consensus findings (prioritized)
 
 **CRITICAL**
-1. **Point of compliance x not varied by water use** — fix x=0 for potable/agricultural (10 m surface
+1. ✅ DONE — **Point of compliance x by water use** — fix x=0 for potable/agricultural (10 m surface
    water) per A-3; current fixed 10 m is non-conservative. (engine returns DF=1 at x≤0 already)
-2. **DW mixing-zone Z_d=2 m not applied** — add a DW branch fixing mixing thickness to 2 m (p103);
+2. ✅ DONE — **DW mixing-zone Z_d=2 m** — add a DW branch fixing mixing thickness to 2 m (p103);
    treat the engine constant as config, not frozen.
-3. **Transient t=500 yr assumes infinite (non-depleting) source** — relabel as a *regulatory derivation
+3. ◐ NOTED in UI — **Transient t=500 yr assumes infinite (non-depleting) source** — relabel as a *regulatory derivation
    scenario, not a travel-time prediction*; document infinite-source-mass assumption; consider a
    source-depletion option for site work.
 4. **Compliance standards = TRAINING export, missing metal values** — swap for production EQuIS;
