@@ -132,3 +132,10 @@ solubility caps the leachate — so using BC values for an AB run gives AB-incor
 solubility / half-life from A-6 (changes R and the solubility cap). Pending Emma's sign-off on which
 A-6 entries to adopt ("not all AB matched CCME choices" — Emma). Chlorinated solvents carry **no
 half-life** in A-6 (non-degrading, conservative) — matches BC P28 treatment.
+
+## Metals — handling & open resolution (see AB_METALS_SCREENING.md)
+AB Tier 2 does **not** derive soil→GW guidelines for inorganics. Tool (implemented): under AB, metals
+**block the soil→GW pathway** and the user enters the **observed groundwater C₀**; the **AB GW
+compliance standard still applies** (now explicit in the in-app message). **OPEN for Emma:** confirm the
+metals workflow, curate/verify the AB GW guideline values (training-export, vary by land/water use &
+texture), and source the few missing values. Full screening table: **`AB_METALS_SCREENING.md`**.

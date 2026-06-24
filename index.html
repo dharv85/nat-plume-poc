@@ -592,7 +592,7 @@ require([
     // AB Tier 2 does NOT derive soil→GW guidelines for inorganics/metals (requires site-specific GW sampling).
     if ($("jur").value === "AB" && DB.substances[name] && DB.substances[name].cls === "metal") {
       var w = document.createElement("div"); w.style.color = "#c60";
-      w.textContent = "⚠ AB Tier 2 does not derive soil→groundwater guidelines for inorganics/metals — assess by site-specific groundwater sampling. Enter the observed C₀ directly, or switch framework.";
+      w.textContent = "⚠ AB Tier 2 does not model soil→groundwater for metals — enter the observed groundwater concentration (site-specific sampling) as C₀. The AB groundwater standard still applies as the compliance threshold.";
       out.appendChild(w);
       $("c0").readOnly = false; $("c0").style.background = "";   // let user enter observed C₀
       return;

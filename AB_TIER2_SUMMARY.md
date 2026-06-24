@@ -30,7 +30,7 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 5. ✅ **Table C-2 linked groups** — DECIDED (Dan): **free-edit** with a clear in-UI note (added under AB) listing the linked groups the user must adjust together manually.
 
 ## ⚠️ Remaining — engine-level (Craig) / behaviour to confirm
-6. ✅ **AB metals** — DONE: under AB, selecting a metal blocks the soil→GW pathway with a warning ("assess by site-specific GW sampling; enter observed C₀ directly") and frees C₀ for manual entry.
+6. ◐ **AB metals** — tool behaviour DONE (under AB, metals block the soil→GW pathway; message now makes explicit that the **AB GW compliance standard still applies**; C₀ freed for observed entry). **STILL NEEDS EMMA'S RESOLUTION** on the metals workflow + guideline values — see **`AB_METALS_SCREENING.md`** (screening table of all 20 metals vs AB GW guideline values).
 7. ✅ **Saturated transport mode** — DONE: selecting AB sets the plume to **transient, t = 500 yr** (AB DF4); selecting BC sets steady-state (BC GPM). User can still override.
 8. **Mixing-zone Z_d = 2 m for the drinking-water pathway** (calculated for other pathways) — engine always calculates it. Engine-level note, not changed.
 9. **Point of compliance x by water use** — AB varies x (potable/agricultural = 0 m; surface water = 10 m). Tool fixes x_poc = 10. To wire per water use.
