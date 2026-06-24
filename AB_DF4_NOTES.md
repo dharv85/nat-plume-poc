@@ -2,8 +2,8 @@
 
 Branch `alberta-model` · 2026-06-24 · **Craig-authorized.** The aquatic-life DF4 over-prediction is
 **resolved**: the cause was the BC decay constant carried into the AB model. All AB Tier 1 aquatic
-guidelines now reconcile to within +0% to +14% (mostly ≤6%). No official AB Tier 2 calculator exists; this
-was resolved directly from the guidance equations (p134–135).
+guidelines now reconcile to within **±1–5%** (after the K fix; mostly ±1%). No official AB Tier 2
+calculator exists; this was resolved directly from the guidance equations (p134–135).
 
 ## The exact AB DF4 equation (p134–135) — equation form is correct
 > **DF4 = 4 / [ exp(A) · erfc(B) · (erf(C) − erf(D)) ]**

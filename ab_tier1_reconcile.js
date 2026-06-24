@@ -77,7 +77,7 @@ console.log("\nNotes:");
 console.log("- SWQG = POTABLE GW guideline (Table B-2 'Potable' col, mg/L); published = DUA soil guideline");
 console.log("  (Tables A-2, 'Protection of Domestic Use Aquifer' cols 8/9). Use Potable, NOT Table 2 'Lowest'.");
 console.log("- DW (DUA) pathway: Zd = 2 m fixed (p103), x = 0 → DF4 = 1. SRG = SWQG·DF1·DF2·DF3 (DF1 carries /1000).");
-console.log("- Full cell-for-cell sign-off: confirm with Emma + the official AEPA Tier 2 calculator.");
+console.log("- No official AB Tier 2 calculator exists → published Tier 1 guidelines are the target; Emma to review.");
 
 // ============================================================================================
 // AQUATIC LIFE pathway — protection of freshwater aquatic life via lateral groundwater discharge.

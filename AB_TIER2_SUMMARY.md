@@ -4,9 +4,15 @@ Branch **`alberta-model`** · local preview **http://localhost:8001** · updated
 Detailed validation + citations: **`AB_DEFAULTS_VALIDATION.md`**. Source document: *Alberta Tier 2
 Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Table 6).
 
-> Guardrail honoured throughout: the **validated Domenico/BIOSCREEN saturated-transport math is
-> unchanged**. All AB work is in input defaults, ranges, chemistry data, and UI. Discrepancies were
-> **flagged and sourced**, then corrected at the config/UI layer for Emma to sign off.
+> Guardrail honoured throughout: BC's validated Domenico/BIOSCREEN path is **byte-identical**
+> (`engine.test.js` still 1e-9). AB-specific saturated-transport (DF4) corrections were made **with
+> Craig's authorization** (2026-06-24) and are flag-gated so BC is untouched. Discrepancies were
+> **flagged and sourced**, then reconciled against the published AB Tier 1 guidelines.
+
+> **★ Reconciliation complete (2026-06-24):** the DF1–DF4 chain now reproduces the published AB Tier 1
+> soil guidelines across **all groundwater-protection pathways — DUA 14/14, Aquatic 12/12, Livestock 10/10,
+> Wildlife 5/5** — to within ±1–5% (mostly ±1%), the residual being 100% published 2-s.f. rounding (audited
+> in `ab_residual_analysis.js`). See **`AB_TIER1_RECONCILIATION.md`** and **`AB_DF4_NOTES.md`**.
 
 ## ✅ Completed
 
@@ -20,7 +26,11 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 | **Aquifer thickness d_a** | Read-only / fixed at 5 m (not adjustable). | Table 6, A-3 |
 | **A-6 chemistry override** | When AB is selected, Koc / H′ / solubility / half-life come from **Table A-6**, not BC Protocol 28. Source-tagged [AB A-6] / [BC P28]. **34 contaminants** (19 DB-matched + 15 AB-specific). | Table A-6 |
 | **AB-specific contaminants** | 15 AB-only entries appear in the picker only under AB: PHC aliphatic/aromatic fractions, vinyl chloride, 1,1-DCE, 1,2-DCA, styrene. | Table A-6 |
-| **Validation record** | `AB_DEFAULTS_VALIDATION.md` with every value + citation. | — |
+| **DF3 mixing zone (AB)** | `dilutionFactor` now uses AB constants `Zd = 0.01·X + da·(1−e^(−2.178·X·I/(V·da)))` (was BC's 0.1·X / coef 1, ~3.7× too large). Opt-in; BC unchanged. | p133 |
+| **DF4 lateral transport (AB)** | `fSaturated` AB mode: velocity uses θt; decay `Ls = 0.6931·e^(−0.07·d)/t½` (added the missing depth factor); TCE t½ = 2.19 yr. Craig-authorized; BC byte-identical. | p134–135, C-6 |
+| **Hydraulic conductivity K** | AB K = **320/32 m/yr** (Table C-2), not 1e-5/1e-6 m/s (=315.6/31.6, ~1.4% low). | Table C-2 |
+| **Tier 1 reconciliation** | Full DF1–DF4 chain reproduces published AB Tier 1 soil guidelines: **DUA 14/14, Aquatic 12/12, Livestock 10/10, Wildlife 5/5** (±1–5%, rounding-limited). `ab_tier1_reconcile.js`. | Tables A-2/B-2/C-11 |
+| **Validation record** | `AB_DEFAULTS_VALIDATION.md` (defaults) + `AB_TIER1_RECONCILIATION.md` (reconciliation) + `AB_DF4_NOTES.md` (DF4) + `ab_residual_analysis.js` (residual audit). | — |
 
 ## 🔎 Remaining — for Emma (science sign-off)
 1. **Confirm the transcribed values** — A-2/A-3 defaults, C-1 ranges, and A-6 chemistry against her copy of the guidance (I transcribed + verified line-by-line, but a second set of eyes on regulatory numbers).
@@ -36,8 +46,12 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 9. ✅ **Point of compliance x by water use** — DONE: a Water-use selector sets the POC distance — Drinking water / **Irrigation / Livestock (= agricultural)** = x 0; Aquatic (surface water) / Wildlife = x 10 m. Plume shows a POC marker + PASS/EXCEEDS readout at that x.
 
 ## 🧭 Remaining — broader (before regulatory use)
-10. **Workbook/calculator reconciliation** — as with BC GPM, AB results should be validated against Alberta's official Tier 2 calculator / worked examples cell-for-cell before any regulatory use. This tool is screening/visualisation.
+10. ✅ DONE — **Reconciliation.** There is **no official AB Tier 2 calculator**; the published AB Tier 1
+    guidelines are the authoritative target. The tool reconciles to them across all GW-protection pathways
+    (DUA/Aquatic/Livestock/Wildlife) to ±1–5% (rounding-limited). `AB_TIER1_RECONCILIATION.md`. Still
+    advisable: Emma's independent eyes on the worked examples + the transcribed standards.
 11. **Production compliance standards** — the AB GW standards currently shown are from the **EQuIS TRAINING** export (flagged "verify"); swap for production EQuIS standards.
+12. **CSM / vapour-intrusion scope banner** (roundtable #6) and **porosity auto-derivation from ρb** (#5) — still open.
 
 ## How to review
 Open **http://localhost:8001**, set **Source pathway → Jurisdiction = AB Tier 2**. Try the Fine/Coarse

@@ -180,11 +180,12 @@ AB site work, since site PHC data arrives as lumped F1–F4.
   for the drinking-water pathway — covering the SLR/Suncor priority classes.
 - ◐ **PHC fractions:** F3/F4 correctly excluded; F1≈controlling sub-fraction; **lumped F1/F2 need
   CCME (2008a) lumped entries in the tool** (flagged above) before they can be screened/reconciled.
-- ◐ **Other pathways** (aquatic/livestock/irrigation with DF4 lateral transport at x = 10 m) not yet in
-  this table — extend `CASES` and re-run.
+- ✅ **All GW-protection pathways done:** DUA 14/14, Aquatic 12/12, Livestock 10/10, Wildlife 5/5.
+  Irrigation has no AB organic guideline (not testable).
 - ◐ **Metals** remain excluded by design (AB does not model soil→GW for inorganics).
-- ◐ **Formal sign-off:** confirm with Emma and reproduce against the **official AEPA Tier 2 calculator**;
-  the published Tier 1 tables are the proxy used here. Standard attribution cited to Table A-2 / B-2.
+- ◐ **Formal sign-off:** **there is no official AB Tier 2 calculator** — the published AB Tier 1 guidelines
+  are the authoritative target, and the tool reproduces them to within published 2-s.f. precision.
+  Remaining is **Emma's independent review** of the worked examples + transcribed standards.
 
 ## How to extend
 Add rows to `CASES` (contaminant, potable SWQG mg/L, published DUA fine/coarse). Re-run; each case prints

@@ -1,6 +1,12 @@
 # AB input-defaults validation — tool vs Alberta Tier 2 Appendix A
 
 **Branch:** `alberta-model` · **Date:** 2026-06-24 · **For Emma to confirm against source tables.**
+
+> **STATUS UPDATE (2026-06-24):** every "❌ WRONG" value flagged below has since been **corrected in the
+> tool and reconciled** against the published AB Tier 1 guidelines (K → 320/32 m/yr, I → 0.06/0.012, Y → 10,
+> x by water use, θt not ne). The DF1–DF4 chain now reproduces the published soil guidelines across all
+> GW-protection pathways to ±1–5% (see `AB_TIER1_RECONCILIATION.md`). The table below is retained as the
+> record of what was found.
 **Source:** Alberta Tier 2 Soil & Groundwater Remediation Guidelines (2024-06), **Appendix A** —
 Table **A-2** (Soil & Hydrogeological Parameters), Table **A-3** (Site Characteristics).
 Values in A-2/A-3 are "from CCME (2006a) except as noted." AB defines **two soil scenarios:
@@ -33,11 +39,11 @@ from the AB tables).
 ## Points of compliance (A-3) — for the x input
 - Distance to **surface water** user: x = 10 m
 - Distance to **potable** / **agricultural** water user: x = 0 m
-(Tool currently fixes x_poc = 10; AB varies x by water use — to wire per use.)
+(✅ DONE — x now varies by water use: potable/livestock/irrigation = 0, surface water/wildlife = 10 m.)
 
 ## Open items to confirm with Emma
-1. **Effective porosity (ne):** tool uses 0.25. **Not listed in Table A-2** — confirm AB's ne /
-   the value CCME uses for the saturated seepage velocity (v = K·i/ne).
+1. ✅ RESOLVED — **Effective porosity (ne) is BC-only.** AB Table C-2 lists only **total porosity θt**
+   (no ne); AB DF4 velocity is `v = V/(θt·Rs)`. The tool's AB path uses θt; ne is retained for BC only.
 2. **Which soil scenario is the AB default** in the tool — Coarse (more mobile / conservative) or
    user-selectable Fine/Coarse? Recommend a **Fine/Coarse toggle**.
 3. **Chemical defaults (Table A-6: Koc, Henry's, half-lives):** tool currently uses BC Protocol 28

@@ -77,14 +77,14 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
    from ρb (C.8.2); lock/co-update the linked groups.
 6. **No vapour-intrusion / CSM scope statement** — prominent banner: groundwater pathway only; volatiles
    (VC, 1,1-DCE, light PHC) require separate vapour-intrusion screening.
-7. ✅ DONE (DW pathway) — **Reconciliation vs published Tier 1 values** (`ab_tier1_reconcile.js`,
-   `AB_TIER1_RECONCILIATION.md`): tool reproduces the published AB Tier 1 **"Protection of Domestic Use
-   Aquifer" (drinking-water)** soil guidelines for **all BTEX + naphthalene, fine & coarse, to 1–3%
-   (10/10)**. Surfaced + fixed two real issues: `abSoilGuideline()` now applies the DW **Zd = 2 m** fix
-   (was using the calculated zone → ~50% low); and the DUA pathway must use the **Potable** standard
-   (Table B-2), not the Table 2 "Lowest Guideline" (naphthalene's lowest is its *aquatic* value → was
-   500× off). Remaining: extend to aquatic/livestock/irrigation (DF4, x = 10 m), PHC fractions,
-   TCE/PCE; formal sign-off vs the **official AEPA Tier 2 calculator** + Emma.
+7. ✅ DONE (ALL pathways) — **Reconciliation vs published Tier 1 values** (`ab_tier1_reconcile.js`,
+   `AB_TIER1_RECONCILIATION.md`). Note: **there is no official AB Tier 2 calculator** — the published Tier 1
+   guidelines ARE the authoritative target. Tool now reproduces them across **every groundwater-protection
+   pathway: DUA 14/14, Aquatic 12/12, Livestock 10/10, Wildlife 5/5** (BTEX + naphthalene + TCE + PCE,
+   fine & coarse), all within ±1–5% (mostly ±1%). Residual audited (`ab_residual_analysis.js`): **100%
+   rounding, no structural input error** — chemistry matches Table C-6 exactly. Fixes surfaced along the
+   way: DW Zd=2 m; Potable (not "Lowest") standard; DF3 AB mixing constants (#15); DF4 decay/θ t (#8);
+   K = 320/32 m/yr (Table C-2). Irrigation: no AB organic guideline (not testable). Metals excluded.
 
 **CRITICAL (new — found during aquatic-pathway reconciliation, 2026-06-24)**
 15. ✅ FIXED (opt-in, needs Craig sign-off) — **DF3 mixing zone used BC GPM constants, not AB.** The
@@ -95,13 +95,14 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
    still 1e-9). Aquatic reconciliation 12/12 to 1–3%. Also corrects livestock/irrigation/wildlife.
 
 **RESOLVED (aquatic full-chain reconciliation, 2026-06-24; Craig-authorized) → `AB_DF4_NOTES.md`**
-8. ✅ **DF4 lateral-transport term — RECONCILED to +0…+14% (mostly ≤6%).** Root cause was a **BC-vs-AB
-   confusion in the biodegradation decay term, not a math error**. Three AB-specific fixes (p134–135):
-   (a) velocity uses **total porosity θt**, not ne (BC-only; Table C-2); (b) decay constant
+8. ✅ **DF4 lateral-transport term — RECONCILED to ±1–5%** (after the K fix below). Root cause was a
+   **BC-vs-AB confusion in the biodegradation decay term, not a math error**. Three AB-specific fixes
+   (p134–135): (a) velocity uses **total porosity θt**, not ne (BC-only; Table C-2); (b) decay constant
    **Ls = 0.6931·e^(−0.07·d)/t½** — the tool was missing the `e^(−0.07·d)` water-table-depth factor that
-   caused the ~2× over-prediction (BC uses plain 0.6931/t½); (c) **TCE half-life null→2.19 yr** (Table
-   C-6). BC byte-identical (engine.test.js 1e-9); DUA 14/14; non-degraders & livestock/irrigation
-   unaffected. Confirm with Emma: d = water-table depth = 3 m (Tier 1 default) + TCE 2.19 yr.
+   caused the ~2× over-prediction (BC uses plain 0.6931/t½); (c) **TCE half-life null→2.19 yr** (Table C-6,
+   **CONFIRMED by Emma**). A further input fix — **K = 320/32 m/yr** (Table C-2; the tool's 1e-5/1e-6 m/s
+   was ~1.4% low) — tightened the full chain from +0…+14% to ±1–5%. d = water-table depth = 3 m is
+   **guidance-confirmed** (Table C-3). BC byte-identical (engine.test.js 1e-9); DUA 14/14.
 9. ✅ RESOLVED — DF4 applied only for AQUATIC/WILDLIFE — **confirmed correct** vs AB (p132: x = 10 m for
    aquatic/wildlife → DF4 active; x = 0 → DF4 = 1 for potable/livestock/irrigation). Tool matches.
 10. F1/F2 → sub-fraction half-life mapping needs a cited basis — document; Emma confirm.
@@ -109,16 +110,22 @@ as a clearly-labelled visualisation/discussion aid right now, nothing more.
 
 **LOW**
 12. Dispersivity scales with x — note in UI.
-13. ne=0.25 origin unconfirmed (greyed for AB; still used by BC + engine `fSaturated`) — confirm source.
-14. A-6 transcription needs Emma's independent sign-off — second-reviewer check.
+13. ✅ RESOLVED for AB — ne is **BC-only** (not an AB parameter; Table C-2 lists only θt). AB `fSaturated`
+   now uses θt; ne retained for BC only. (#8.)
+14. A-6 transcription needs Emma's independent sign-off — second-reviewer check. (TCE half-life ✅ confirmed.)
 
 ## 4. Top priorities before use on a real Alberta site
-1. Fix **x-by-water-use** (x=0 potable/ag) and **DW Z_d=2 m** — the two outright non-conservative errors.
+1. ✅ DONE — **x-by-water-use** (x=0 potable/ag, 10 m surface water) and **DW Z_d=2 m**.
 2. Replace TRAINING standards with **production, use/texture-specific** AB values; fill missing metals; fail-closed.
-3. **Reconcile DF1–DF4 vs the official Alberta Tier 2 calculator** on worked examples.
+3. ✅ DONE — **Reconcile DF1–DF4 vs published AB Tier 1** (no official calculator exists; published Tier 1
+   guidelines are the target). All pathways reconcile to ±1–5%; residual is 100% rounding. (#7, #8, #15.)
 4. Add a **CSM scope banner** (GW pathway only; volatiles → vapour intrusion) and **relabel the 500-yr plume** with the infinite-source caveat.
 5. **Auto-derive porosities from ρb** and enforce/co-update the **C-2 linked groups**.
 
 ## 5. Verdict
-Defensible today only as a clearly-labelled **screening & visualisation aid**; not suitable for a
-regulatory Tier 2 submission until findings 1–5 are closed.
+The **DF1–DF4 science is now reconciled** against Alberta's published Tier 1 guidelines across all
+groundwater-protection pathways (to within published 2-s.f. precision) — a major step up from the original
+review. Remaining items are not numerical-accuracy gaps but **deployment/scope**: production standards
+(#2/#4 — TRAINING export, fail-closed), CSM/vapour-intrusion banner (#6), porosity auto-derivation (#5),
+metals workflow (Emma), and Emma's sign-off on transcribed values. Defensible today as a **screening &
+visualisation aid** with reconciled engine math; the open items above are the gate to regulatory use.
