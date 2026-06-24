@@ -78,6 +78,74 @@ console.log("- DW (DUA) pathway: Zd = 2 m fixed (p103), x = 0 → DF4 = 1. SRG =
 console.log("- Full cell-for-cell sign-off: confirm with Emma + the official AEPA Tier 2 calculator.");
 
 // ============================================================================================
+// AQUATIC LIFE pathway — protection of freshwater aquatic life via lateral groundwater discharge.
+// SRG = SWQG_aquatic (Table C-11 surface-water quality guideline) × DF1·DF2·DF3·DF4.
+// Two differences from DUA: point of compliance x = 10 m → DF4 (lateral transport) is ACTIVE (p132),
+// and the mixing zone DF3 is CALCULATED (AB constants, p133), not fixed at Zd = 2 m.
+//   • swqg = C-11 "Aquatic Life" column (mg/L).
+//   • soil = published "Protection of Freshwater Aquatic Life" soil guideline (Table A-2 cols 15/16).
+//   • gw   = published aquatic-life groundwater guideline (Table B-2 cols 8/9). "NGR" cells skipped.
+// PART A tests the soil→GW chain alone via the soil/gw ratio (= DF1·DF2·DF3, since DF4 + SWQG cancel).
+// PART B tests the FULL chain incl. DF4 against C-11. The two together localise any discrepancy.
+// ============================================================================================
+var AQ = [
+  //                         C-11 aq    published soil A-2        published gw B-2
+  { name: "Benzene",             swqg: 0.04,   soil: { fine: 7.9,   coarse: 0.17 }, gw: { fine: 3.6,   coarse: 0.074 } },
+  { name: "Toluene",             swqg: 0.0005, soil: { fine: 63000, coarse: 0.12 }, gw: { fine: 12000, coarse: 0.021 } },
+  { name: "Ethylbenzene",        swqg: 0.09,   soil: { fine: null,  coarse: 540  }, gw: { fine: null,  coarse: 41    } },
+  { name: "Xylenes",             swqg: 0.03,   soil: { fine: null,  coarse: 41   }, gw: { fine: null,  coarse: 2.9   } },
+  { name: "Naphthalene",         swqg: 0.001,  soil: { fine: 0.014, coarse: 0.017}, gw: { fine: 0.001, coarse: 0.001 } },
+  { name: "Trichloroethylene",   swqg: 0.021,  soil: { fine: 0.72,  coarse: 0.081}, gw: { fine: 0.27,  coarse: 0.029 } },
+  { name: "Tetrachloroethylene", swqg: 0.111,  soil: { fine: 0.69,  coarse: 0.77 }, gw: { fine: 0.11,  coarse: 0.11  } },
+];
+
+console.log("\n\n=== AQUATIC LIFE — PART A: soil→GW chain (soil/gw ratio = DF1·DF2·DF3, AB mixing zone) ===");
+console.log("Ratio cancels DF4 + surface-water guideline → isolates the AB mixing zone (DUA used fixed Zd=2 m).\n");
+console.log("contaminant            tex      tool DF1·DF2·DF3   published soil/gw   %diff");
+console.log("-".repeat(76));
+var aqN = 0, aqOk = 0;
+AQ.forEach(function (c) {
+  ["fine", "coarse"].forEach(function (tex) {
+    if (c.soil[tex] == null || c.gw[tex] == null) return;
+    var r = S.abSoilGuideline(sub(c.name, 1000), sp(tex), WU.AQUATIC);
+    var toolRatio = r.DF1 * r.DF2 * r.DF3 * 1000, pubRatio = c.soil[tex] / c.gw[tex];
+    var pct = (toolRatio - pubRatio) / pubRatio * 100;
+    aqN++; if (Math.abs(pct) <= 15) aqOk++;
+    console.log(c.name.padEnd(22) + " " + tex.padEnd(7) + "   " + toolRatio.toPrecision(3).padStart(9) +
+      "          " + pubRatio.toPrecision(3).padStart(9) + "      " + (pct >= 0 ? "+" : "") + pct.toFixed(0) +
+      "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
+  });
+});
+console.log("\n" + aqOk + "/" + aqN + " within ±15% → DF1·DF2·DF3 (incl. the AB mixing-zone fix) reconciles for ALL.");
+
+console.log("\n=== AQUATIC LIFE — PART B: FULL chain incl. DF4, SRG = SWQG_aq(C-11)·DF1·DF2·DF3·DF4 ===");
+console.log("contaminant          t½(yr) tex      DF4      tool soil   published   %diff");
+console.log("-".repeat(78));
+AQ.forEach(function (c) {
+  ["fine", "coarse"].forEach(function (tex) {
+    if (c.soil[tex] == null) return;
+    var a = AB[c.name], thalf = (a && a.half_life_yr != null) ? a.half_life_yr : "—";
+    var r = S.abSoilGuideline(sub(c.name, c.swqg * 1000), sp(tex), WU.AQUATIC);
+    var pct = (r.SRG_GR - c.soil[tex]) / c.soil[tex] * 100;
+    console.log(c.name.padEnd(20) + String(thalf).padStart(5) + "  " + tex.padEnd(7) + " " +
+      r.DF4.toExponential(2).padStart(9) + "  " + r.SRG_GR.toPrecision(3).padStart(9) + "  " +
+      String(c.soil[tex]).padStart(9) + "   " + (pct >= 0 ? "+" : "") + pct.toFixed(0) +
+      "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
+  });
+});
+console.log("\nReading of Parts A + B:");
+console.log("- DF1·DF2·DF3 (soil→GW) reconciles for ALL contaminants (Part A 12/12; non-degraders PCE/");
+console.log("  naphthalene match the FULL chain to 0–2% — confirming DF4≈1 and the chain together).");
+console.log("- DF4 (lateral transport, x=10 m, p132 — active for aquatic/wildlife only → finding #9 OK)");
+console.log("  reconciles for NON-degrading solutes but DIVERGES for biodegraders (benzene/toluene/EB/");
+console.log("  xylenes) and TCE. ⚠ Root causes sit in the FROZEN saturated-transport math (Step 4, Craig's):");
+console.log("    · velocity porosity — tool uses ne=0.25; AB DF4 uses TOTAL porosity θt (p134, v=V/(θt·Rs));");
+console.log("    · saturated half-lives — e.g. TCE is null here but AB credits TCE biodegradation (DF4≫1);");
+console.log("    · transient t=500 yr vs AB's DF4 time basis, and the exact DF4 equation form (p134).");
+console.log("  Per the hydro guardrail these are FLAGGED for Craig — NOT changed. So the aquatic pathway's");
+console.log("  soil→GW chain is reconciled; its lateral-transport term is not yet, for biodegrading solutes.");
+
+// ============================================================================================
 // PHC fractions (F1–F4). Labs report LUMPED F1–F4, but AB derives the lumped Tier 1 guideline
 // from CCME (2008a) SUB-fraction methodology, and ab_a6.json stores those sub-fractions (no single
 // representative Koc for the lumped fraction). So the lumped F1/F2 guideline is NOT reproducible by a

@@ -644,7 +644,10 @@ require([
     if (start === "soil" || start === "CL") CZ = (b <= 0) ? CL : CL * S.fUnsaturated(sub, sp);
     else CZ = num("cz_in");
     var zdFixed = (waterUse() === "DW") ? 2 : null;   // AB drinking-water pathway: mixing zone Zd = 2 m
-    var DF = S.dilutionFactor(sp, zdFixed);
+    // AB uses its own calculated mixing-zone constants (abMix) for non-DW pathways (Zd = 0.01·X +
+    // da·(1−exp(−2.178·X·I/(V·da))), p133); BC keeps the validated GPM constants. Reconciled to the
+    // published AB Tier 1 aquatic guidelines (ab_tier1_reconcile.js). DW bypasses via zdFixed = 2 m.
+    var DF = S.dilutionFactor(sp, zdFixed, $("jur").value === "AB");
     C0 = CZ / DF;
     var capped = false; if (isFinite(sol) && C0 > 2 * sol) { C0 = 2 * sol; capped = true; }
     // Seepage velocity porosity is framework-specific: AB Tier 2 uses TOTAL porosity θt

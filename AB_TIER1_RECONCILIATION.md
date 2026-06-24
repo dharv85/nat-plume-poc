@@ -44,6 +44,53 @@ at the Tier 1 default inputs:
    For BTEX the two are identical, so only naphthalene exposed it. **Implication for the live tool:** the
    DW/DUA screen must read the *Potable* standard from EQuIS/AGOL, not the most-stringent overall value.
 
+## Aquatic-life pathway — soil→GW chain reconciled; DF4 (lateral transport) only for non-degraders
+Full chain: **SRG = SWQG_aquatic (Table C-11) × DF1·DF2·DF3·DF4**. Differs from DUA in two ways: point of
+compliance **x = 10 m** → DF4 lateral transport is **active** (p132), and the mixing zone **DF3 is
+calculated** (not fixed Zd = 2 m). Tested in two parts so any discrepancy is localised.
+
+**Part A — soil→GW chain** via the soil/gw ratio (`= DF1·DF2·DF3`; DF4 + surface-water guideline cancel).
+**✅ 12/12 within 1–3%** (Benzene 2.21/2.34 vs 2.19/2.30; Toluene 5.20/5.91 vs 5.25/5.71; EB-coarse 13.0
+vs 13.2; Xylenes-coarse 14.0 vs 14.1; Naphthalene 14.1/16.7 vs 14.0/17.0; TCE 2.62/2.77 vs 2.67/2.79;
+PCE 6.19/6.94 vs 6.27/7.00). This confirms the soil→GW chain incl. the AB mixing-zone fix.
+
+**Part B — full chain incl. DF4** against the **Table C-11** "Aquatic Life" surface-water guidelines
+(Benzene 0.04, Toluene 0.0005, EB 0.09, Xylenes 0.03, Naphthalene 0.001, TCE 0.021, PCE 0.111 mg/L):
+
+| Contaminant | t½ (yr) | tool soil (f/c) | published (f/c) | %diff | verdict |
+|---|---|---|---|---|---|
+| **PCE** | — | 0.688 / 0.770 | 0.69 / 0.77 | 0% / 0% | ✅ |
+| **Naphthalene** | — | 0.0141 / 0.0167 | 0.014 / 0.017 | +1% / −2% | ✅ |
+| Benzene | 1 | 2.30 / 0.161 | 7.9 / 0.17 | −71% / −5% | ❌ fine |
+| Toluene | 0.29 | 1360 / 0.083 | 63000 / 0.12 | −98% / −31% | ❌ |
+| Ethylbenzene | 0.31 | 295 (c) | 540 (c) | −45% | ❌ |
+| Xylenes | 0.50 | 25.7 (c) | 41 (c) | −37% | ❌ |
+| TCE | — (null) | 0.055 / 0.058 | 0.72 / 0.081 | −92% / −28% | ❌ |
+
+**Reading:** the **soil→GW chain reconciles for everything** (Part A 12/12; the two **non-degrading**
+solutes PCE & naphthalene match the *full* chain to 0–2%, proving DF4≈1 and the chain are both right).
+**DF4 (lateral transport) only reconciles for non-degraders** — it diverges for every biodegrading solute
+and for TCE. The divergence is entirely in DF4's biodegradation term.
+
+### ⚠ DF4 discrepancies — flagged for Craig (frozen saturated-transport math, NOT changed)
+Per the hydro guardrail (don't alter the validated Step-4 / Domenico math), these are flagged, not fixed:
+- **Velocity porosity:** the tool's `fSaturated` uses **effective porosity ne = 0.25**; AB DF4 uses
+  **total porosity θt** (p134, `v = V/(θt·Rs)`). Slower velocity → more biodegradation → larger DF4.
+- **Saturated half-lives:** e.g. **TCE is null** in `ab_a6.json` but AB credits TCE biodegradation
+  (published DF4 ≫ 1) — a data gap; benzene/toluene values also need checking vs AB.
+- **Transient t = 500 yr vs AB's DF4 time basis**, and the exact DF4 equation form (p134).
+- These touch the **frozen saturated-transport core** → require Craig's review before any change.
+
+### 🐞 Engine finding (Part A): DF3 used BC GPM constants, not AB (fixed; needs Craig sign-off)
+The shared `dilutionFactor` computed the mixing zone with **BC GPM constants** (`Zd = 0.1·X +
+da·(1−exp(−X·I/(V·da)))`); AB Tier 1 (p133) prescribes `Zd = 0.01·X + da·(1−exp(−2.178·X·I/(V·da)))`.
+The BC form ran the mixing zone **~3.7× large → soil guidelines ~3.7× too high (non-conservative)** on
+every pathway except DUA (masked by the fixed Zd = 2 m). Fix: a third `abMix` argument selects the AB
+constants; `abSoilGuideline` and the UI's AB path pass it. **BC path byte-identical** (`engine.test.js`
+still 1e-9; DUA still 14/14). Validated by Part A (12/12) + the non-degrader full chain. Also corrects the
+live **livestock / irrigation** pathways (x = 0 → DF4 = 1, so those are *fully* reconciled by this fix).
+Resolves roundtable **#9** (DF4 active for aquatic/wildlife only, p132); logged as new finding **#15**.
+
 ## PHC fractions (F1–F4) — a methodology boundary, flagged not forced
 Labs report **lumped F1–F4**, but AB derives the lumped Tier 1 guideline from **CCME (2008a)
 sub-fraction** methodology, and `ab_a6.json` stores those **sub-fractions** (the A-6/C-6 chemistry table

@@ -58,12 +58,19 @@
     var Ru = 1 + (sp.rho_b / sp.nw) * kdEff(sub, sp), vu = I_m_yr(sp) / sp.nw;
     return Math.exp((b / (2 * alphaU)) * (1 - Math.sqrt(1 + 4 * lam * alphaU * Ru / vu)));
   }
-  // fixedZd (optional): AB drinking-water pathway fixes the mixing-zone thickness Zd at 2 m
-  // (Alberta Tier 2 / TG13, p103). Omit for all other pathways → Zd is calculated.
-  function dilutionFactor(sp, fixedZd) {
+  // DF3 = 1 + Zd·V/(I·X). The mixing-zone thickness Zd is computed differently by jurisdiction, so the
+  // two flags select which rule applies:
+  //   fixedZd = 2  → drinking-water pathway: Zd is FIXED at 2 m (both BC & AB; AB Tier 1 p103).
+  //   abMix = true → AB Tier 1 calculated zone:  Zd = 0.01·X + da·(1 − exp(−2.178·X·I/(V·da)))   (p133)
+  //   neither      → BC GPM calculated zone:     Zd = 0.10·X + da·(1 − exp(−1·X·I/(V·da)))   [DEFAULT]
+  // The default (BC) branch is unchanged from Craig's validated module, so BC results stay bit-for-bit.
+  // AB callers pass abMix=true; the AB constants were reconciled to the published AB Tier 1 aquatic
+  // soil guidelines (ab_tier1_reconcile.js). When fixedZd=2 is set, abMix is irrelevant (Zd is fixed).
+  function dilutionFactor(sp, fixedZd, abMix) {
     if (bOf(sp) < 0) return 1.0;
     var V = V_m_yr(sp), I = I_m_yr(sp), X = sp.X, da = sp.da, dm;
     if (fixedZd != null && fixedZd > 0) { dm = Math.min(fixedZd, da); }   // DW pathway: Zd = 2 m fixed
+    else if (abMix) { var sa = da * (1 - Math.exp(-(2.178 * X * I) / (V * da))); dm = Math.min(0.01 * X + sa, da); }
     else { var s = da * (1 - Math.exp(-(X * I) / (V * da))); dm = Math.min(0.1 * X + s, da); }
     return 1 + (dm * V) / (X * I);
   }
@@ -101,8 +108,11 @@
     // AB drinking-water (Domestic Use Aquifer) pathway fixes the mixing-zone thickness Zd = 2 m
     // (Alberta Tier 1/2, p103); all other pathways use the calculated mixing zone. Matches the UI
     // (computePathway) and roundtable finding #2. dilutionFactor's fixedZd arg is backward-compatible.
+    // AB uses its own calculated mixing-zone constants (abMix=true) for every pathway except DW,
+    // where Zd = 2 m is fixed (zd bypasses the calc). This is the AB regulatory layer, distinct from
+    // the BC GPM mixing zone in the shared dilutionFactor primitive.
     var zd = (use === WaterUse.DRINKING) ? 2 : null;
-    var DF1 = fPartition(sub, sp), DF2 = 1 / fUnsaturated(sub, sp), DF3 = dilutionFactor(sp, zd);
+    var DF1 = fPartition(sub, sp), DF2 = 1 / fUnsaturated(sub, sp), DF3 = dilutionFactor(sp, zd, true);
     var DF4 = (use === WaterUse.AQUATIC || use === WaterUse.WILDLIFE) ? 1 / fSaturated(sub, sp, false, 500.0) : 1.0;
     var DF = DF1 * DF2 * DF3 * DF4;
     return { applicable: true, SRG_GR: swqg * DF, DF1: DF1, DF2: DF2, DF3: DF3, DF4: DF4, DF: DF };
