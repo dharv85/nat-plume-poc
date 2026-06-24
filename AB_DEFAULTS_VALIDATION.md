@@ -112,3 +112,24 @@ Resolved against the AB Tier 2 document (citations below):
 **Also found (engine-level, flag for Craig/Emma):** mixing-zone thickness **Z_d is fixed at 2 m for the
 drinking-water pathway** (calculated for all other pathways) — p103 (AB-vs-BC divergence; BC computes
 d_m capped at aquifer thickness). The engine currently always calculates the mixing zone.
+
+## Table A-6 chemical cross-check — tool (BC Protocol 28) vs AB Tier 2 A-6
+The tool's substance DB is **BC Protocol 28**. AB Tier 2 Table A-6 uses different sources
+(EC 2005, USEPA 1996a, CCME 2008, Gustafson 1997). **Koc and solubility differ materially for every
+modelled contaminant** (Henry's mostly agrees). Koc drives retardation R = 1 + (ρb/n)·Koc·foc;
+solubility caps the leachate — so using BC values for an AB run gives AB-incorrect results.
+
+| Contaminant | Koc tool / **A-6** | H' tool / A-6 | Solubility (mg/L) tool / **A-6** | Half-life (yr) tool / A-6 |
+|---|---|---|---|---|
+| Benzene | 146 / **81** (+80%) | 0.227 / 0.225 ✓ | 895 / **1780** (−50%) | 1.07 / 1.0 |
+| Toluene | 234 / 234 ✓ | 0.271 / 0.274 ✓ | 263 / **515** (−49%) | 0.36 / 0.288 |
+| Ethylbenzene | 446 / **537** (−17%) | 0.322 / 0.358 | 84 / **152** (−44%) | 0.79 / 0.312 |
+| Xylenes | 383 / **586** (−35%) | 0.271 / 0.252 | 53 / **198** (−73%) | 0.79 / 0.501 |
+| Trichloroethylene | 60.7 / **94** (−35%) | 0.403 / 0.422 ✓ | 640 / **1100** (−42%) | none / none |
+| Tetrachloroethylene | 94.9 / **265** (−64%) | 0.724 / 0.754 ✓ | 103 / **200** (−48%) | none / none |
+
+**Conclusion:** for AB runs the tool should use **AB Table A-6 chemical values**, not BC Protocol 28.
+**Proposed:** add an AB A-6 chemical set; when the AB framework is selected, source Koc / H' /
+solubility / half-life from A-6 (changes R and the solubility cap). Pending Emma's sign-off on which
+A-6 entries to adopt ("not all AB matched CCME choices" — Emma). Chlorinated solvents carry **no
+half-life** in A-6 (non-degrading, conservative) — matches BC P28 treatment.
