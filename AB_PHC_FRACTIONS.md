@@ -4,6 +4,14 @@ Branch `alberta-model` · 2026-06-24 · follow-up to `AB_TIER1_RECONCILIATION.md
 Reviews the Alberta Tier 1 (2024) **sub-fraction summation equations** (Appendix C, §C.2.2.5, p120–121)
 and recommends how the tool should treat PHC fractions.
 
+> **DECISION (Dan, 2026-06-24): DEFER all PHC-fraction implementation until a clear need.**
+> No lumped F1/F2 entries and no summation are being built now. The methodology + recommendation below
+> are captured so the work is ready to pick up the moment an Alberta site with PHC-fraction data needs
+> screening. **When that need arises:** quick path = lumped published Tier 1 F1/F2 guidelines as the
+> screening standard (steps 1–2 below); fuller path = optional speciated Tier-2 summation (step 4).
+> Current state stays as-is: CCME sub-fractions remain in `ab_a6.json`; F3/F4 have no GW pathway; the
+> harness (`ab_tier1_reconcile.js`) documents the fractions honestly.
+
 ## What the guideline actually does (verbatim method)
 AB does **not** assign one Koc to a lumped fraction. Each PHC fraction (F1 = C6–C10, F2 = >C10–C16,
 etc.) is split into **sub-fractions** by structure (aliphatic vs aromatic) and carbon range, each with its
