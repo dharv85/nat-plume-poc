@@ -116,6 +116,7 @@
         <div id="abTexRow" style="display:none">
           <label>AB soil texture <span class="hint">(Tier 2 Table A-2)</span></label>
           <div class="seg" id="texSeg"><button data-tex="coarse" class="on">Coarse</button><button data-tex="fine">Fine</button></div>
+          <div class="chk" style="margin-top:5px"><input type="checkbox" id="abFineLayer"><label for="abFineLayer" style="margin:0">Continuous fine layer ≥1 m over coarse <span class="hint">(apply fine recharge — Table 6 exception)</span></label></div>
         </div>
         <label>Start from (run all, or skip ahead)</label>
         <select id="start">
@@ -583,7 +584,12 @@ require([
       out.appendChild(w);
     }
   }
-  function populateDefaults(jur) { var d = frameworkDef(jur); for (var k in d) { if ($(k)) $(k).value = d[k]; } }
+  function populateDefaults(jur) {
+    var d = frameworkDef(jur); for (var k in d) { if ($(k)) $(k).value = d[k]; }
+    // AB recharge exception (Table 6 / p108): fine recharge may apply at a coarse site with a
+    // continuous fine-grained layer ≥1 m overlying the aquifer.
+    if (jur === "AB" && abTexture === "coarse" && $("abFineLayer") && $("abFineLayer").checked) { $("I").value = AB_FINE.I; }
+  }
   // Master framework driver: selecting a framework aligns ALL inputs + the compliance standard.
   function onJur() {
     var jur = $("jur").value, active = jur !== "manual";
@@ -593,6 +599,10 @@ require([
     if ($("ne")) { var abNe = (jur === "AB");                              // AB: ne unused (velocity uses θt)
       $("ne").readOnly = abNe; $("ne").style.background = abNe ? "#eee" : "";
       $("ne").title = abNe ? "Not used in AB Tier 2 — velocity uses total porosity θt" : ""; }
+    // AB Table 6: infiltration I and aquifer thickness d_a are NOT adjustable at Tier 2 → read-only
+    ["I", "da"].forEach(function (id) { if ($(id)) { var ab = (jur === "AB");
+      $(id).readOnly = ab; $(id).style.background = ab ? "#eee" : "";
+      $(id).title = ab ? "Fixed at Tier 2 — not adjustable (AB Table 6)" : ""; } });
     $("c0").readOnly = active; $("v").readOnly = active;
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
     if (active) populateDefaults(jur);
@@ -615,6 +625,7 @@ require([
       if ($("jur").value === "AB") { populateDefaults("AB"); run(); }
     });
   });
+  if ($("abFineLayer")) $("abFineLayer").addEventListener("change", function () { if ($("jur").value === "AB") { populateDefaults("AB"); run(); } });
   function onStart() {
     var s = $("start").value;
     $("inSoil").style.display = (s === "soil") ? "block" : "none";
