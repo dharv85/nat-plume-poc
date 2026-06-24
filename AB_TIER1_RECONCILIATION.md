@@ -6,7 +6,8 @@ Harness: **`ab_tier1_reconcile.js`** (`node ab_tier1_reconcile.js`).
 ## Result — ✅ 14/14 within ±1% (DUA / drinking-water)
 The tool reproduces the **published Alberta Tier 1 drinking-water soil remediation guidelines** for all
 BTEX + naphthalene + the chlorinated solvents TCE/PCE, fine and coarse, to within **±1%** (after the K fix
-below; was 1–3%). Pathway scorecard: **DUA 14/14, Aquatic 12/12, Livestock 10/10** — all ≤±3%, mostly ±1%:
+below; was 1–3%). Pathway scorecard: **DUA 14/14, Aquatic 12/12, Livestock 10/10, Wildlife 5/5** — all
+≤±5%, mostly ±1%:
 
 | Contaminant | Texture | Tool SRG (mg/kg) | Published DUA (mg/kg) | %diff |
 |---|---|---|---|---|
@@ -111,6 +112,13 @@ Benzene 0.195/0.207 vs 0.2/0.21; Toluene 25.6/29.1 vs 26/29; EB 35.6/41.7 vs 36/
 **Irrigation:** AB Tier 1 has **no irrigation guideline** for BTEX / PHC / chlorinated organics (all "—"
 in Tables A-2, B-2, C-11 — irrigation guidelines exist only for inorganics/pesticides), so there are no
 organic test cases for it.
+
+## Wildlife-water pathway — ✅ 5/5 within ±5%
+Like aquatic, **x = 10 m → DF4 active** (p132: 10 m for aquatic life *and* wildlife watering), so it's a
+second full check of the DF4 chain: `SRG = SWQG_wildlife (Table C-11) × DF1·DF2·DF3·DF4`. Benzene 14.9/0.332
+vs 15/0.33; Toluene-coarse 1050 vs 1000; EB-coarse 16,600 vs 17,000; Xylenes-coarse 15,500 vs 16,000
+(mg/kg) — all within ±5%. (Many fines are NGR; naphthalene/TCE/PCE have no wildlife guideline.) Same DF4 as
+aquatic by construction (x=10), so this independently confirms the DF4 + K fixes.
 
 ## Why the residual is ±1% (and not exactly 0%)
 The ±1–3% is at the **precision floor of the published data**, not a model error. In priority order:

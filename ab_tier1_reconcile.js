@@ -179,6 +179,36 @@ LW.forEach(function (c) {
 console.log("\n" + lwOk + "/" + lwN + " livestock cases within ±15%. (Irrigation: no AB organic guidelines → not testable.)");
 
 // ============================================================================================
+// WILDLIFE-WATER pathway — protection of wildlife drinking from a surface water body. Like aquatic,
+// x = 10 m → DF4 ACTIVE (p132: 10 m for aquatic life AND wildlife watering); calculated mixing zone.
+// SRG = SWQG_wildlife(Table C-11 "Wildlife Water") × DF1·DF2·DF3·DF4. soil = Table A-2 cols 19/20.
+// Many fines are NGR (no guideline required) and naphthalene/TCE/PCE have no wildlife guideline → skipped.
+// ============================================================================================
+var WW = [
+  { name: "Benzene",      swqg: 0.076, soil: { fine: 15,   coarse: 0.33  } },
+  { name: "Toluene",      swqg: 4.25,  soil: { fine: null, coarse: 1000  } },
+  { name: "Ethylbenzene", swqg: 2.77,  soil: { fine: null, coarse: 17000 } },
+  { name: "Xylenes",      swqg: 11.3,  soil: { fine: null, coarse: 16000 } },
+];
+console.log("\n\n=== WILDLIFE-WATER pathway — full chain SRG = SWQG_wildlife(C-11)·DF1·DF2·DF3·DF4 (x=10 m) ===");
+console.log("contaminant            tex      DF4       tool soil   published   %diff");
+console.log("-".repeat(72));
+var wwN = 0, wwOk = 0;
+WW.forEach(function (c) {
+  ["fine", "coarse"].forEach(function (tex) {
+    if (c.soil[tex] == null) return;
+    var sb = sub(c.name, c.swqg * 1000); sb.standards = { WW: c.swqg * 1000 };
+    var r = S.abSoilGuideline(sb, sp(tex), WU.WILDLIFE);
+    var pct = (r.SRG_GR - c.soil[tex]) / c.soil[tex] * 100;
+    wwN++; if (Math.abs(pct) <= 15) wwOk++;
+    console.log(c.name.padEnd(22) + " " + tex.padEnd(7) + " " + r.DF4.toExponential(2).padStart(9) + "  " +
+      r.SRG_GR.toPrecision(3).padStart(9) + "  " + String(c.soil[tex]).padStart(9) + "   " +
+      (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
+  });
+});
+console.log("\n" + wwOk + "/" + wwN + " wildlife cases within ±15% (same x=10 DF4 as aquatic → confirms the DF4 + K fixes).");
+
+// ============================================================================================
 // WHY NOT EXACT? The residual is at the precision floor of the published data, dominated by:
 //   1. Hydraulic conductivity K — AB Table C-2 gives 320/32 m/yr; the old 1e-5/1e-6 m/s = 315.6/31.6
 //      m/yr (~1.4% low) flowed through V→DF3. Now using AB's K (above) → DUA residual ~−2% → ~±1%.
