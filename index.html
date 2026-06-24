@@ -590,8 +590,10 @@ require([
   // AB = Tier 2 Appendix A Table A-2 (soil/hydrogeo) + A-3 (site), 2024, Fine vs Coarse soil.
   // (K stored in m/s; AB A-2 lists 32 m/y fine / 320 m/y coarse → 1.0e-6 / 1.0e-5 m/s.)
   var BC_DEF    = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55,  K:3e-5,  igr:0.008, Z:3, Y:30 };
-  var AB_COARSE = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.06,  K:1.0e-5, igr:0.028, Z:3, Y:10 };
-  var AB_FINE   = { n:0.47, nw:0.168, ne:0.25, rhob:1.4, dwt:3, dfr:0, Xlen:10, da:5, I:0.012, K:1.0e-6, igr:0.028, Z:3, Y:10 };
+  // K from AB Table C-2: 320 (coarse) / 32 (fine) m/yr → m/s (÷3.15576e7) = 1.014e-5 / 1.014e-6. Using the
+  // round 1e-5/1e-6 m/s (=315.6/31.6 m/yr) is ~1.4% low and was the dominant source of the reconciliation residual.
+  var AB_COARSE = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.06,  K:1.0140e-5, igr:0.028, Z:3, Y:10 };
+  var AB_FINE   = { n:0.47, nw:0.168, ne:0.25, rhob:1.4, dwt:3, dfr:0, Xlen:10, da:5, I:0.012, K:1.0140e-6, igr:0.028, Z:3, Y:10 };
   var abTexture = "coarse"; // AB Tier 1 generic = coarse (conservative/mobile)
   function frameworkDef(jur) { return jur === "AB" ? (abTexture === "fine" ? AB_FINE : AB_COARSE) : BC_DEF; }
   function fmt(x) { return (x >= 1000) ? Math.round(x).toLocaleString() : Number(x).toPrecision(4); }

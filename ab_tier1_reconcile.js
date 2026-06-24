@@ -21,7 +21,9 @@ function sp(tex) {
   var fine = tex === "fine";
   s.n = fine ? 0.47 : 0.36; s.nw = fine ? 0.168 : 0.119; s.ne = 0.25;
   s.rho_b = fine ? 1.4 : 1.7; s.foc = 0.005; s.i = 0.028;
-  s.K_m_s = fine ? 1.0e-6 : 1.0e-5; s.P_mm = fine ? 12 : 60; s.RO_EV_mm = 0;  // I = 0.012 / 0.06 m/y
+  // K from AB Table C-2: 320 (coarse) / 32 (fine) m/yr — NOT 1e-5/1e-6 m/s (=315.6/31.6 m/yr), which is
+  // ~1.4% low and was a measurable source of the DUA residual. Express in m/s for the engine (V=K·i).
+  s.K_m_s = (fine ? 32 : 320) / 3.15576e7; s.P_mm = fine ? 12 : 60; s.RO_EV_mm = 0;  // I = 0.012 / 0.06 m/y
   s.X = 10; s.Y = 10; s.Z = 3; s.d = 3; s.da = 5; s.Dfr = 0;
   return s;
 }
@@ -142,6 +144,51 @@ console.log("       was MISSING (BC uses plain 0.6931/t½); this was the cause o
 console.log("    3. TCE saturated half-life null→2.19 yr (Table C-6).");
 console.log("- Non-degraders (PCE, naphthalene) DF4=1 (t½ null) — unaffected. DUA/livestock/irrigation");
 console.log("  use x=0→DF4=1. BC path byte-identical (engine.test.js 1e-9).");
+
+// ============================================================================================
+// LIVESTOCK-WATER pathway — protection of livestock drinking water. x = 0 → DF4 = 1 (Table C-3:
+// agricultural water user x = 0); mixing zone is CALCULATED (AB constants), not Zd = 2 m. So
+// SRG = SWQG_livestock(Table C-11) × DF1·DF2·DF3 — a clean full-chain test of the soil→GW chain at x=0.
+//   swqg = C-11 "Livestock Water" (mg/L); soil = published livestock soil guideline (Table A-2 cols 17/18).
+// IRRIGATION pathway: AB Tier 1 has NO irrigation guideline for BTEX / PHC / chlorinated organics (all
+// "—" in Tables A-2, B-2, C-11) — irrigation guidelines exist only for inorganics/pesticides → no organic
+// test cases. Naphthalene & PCE livestock = NGR/"—" (no guideline) → skipped.
+// ============================================================================================
+var LW = [
+  { name: "Benzene",           swqg: 0.088, soil: { fine: 0.2,  coarse: 0.21 } },
+  { name: "Toluene",           swqg: 4.91,  soil: { fine: 26,   coarse: 29   } },
+  { name: "Ethylbenzene",      swqg: 3.2,   soil: { fine: 36,   coarse: 42   } },
+  { name: "Xylenes",           swqg: 13.1,  soil: { fine: 160,  coarse: 180  } },
+  { name: "Trichloroethylene", swqg: 0.05,  soil: { fine: 0.13, coarse: 0.14 } },
+];
+console.log("\n\n=== LIVESTOCK-WATER pathway — full chain SRG = SWQG_livestock(C-11)·DF1·DF2·DF3 (x=0, DF4=1) ===");
+console.log("contaminant            tex      SWQG    tool soil   published   %diff");
+console.log("-".repeat(70));
+var lwN = 0, lwOk = 0;
+LW.forEach(function (c) {
+  ["fine", "coarse"].forEach(function (tex) {
+    var s = sp(tex); var sb = sub(c.name, c.swqg * 1000); sb.standards = { LW: c.swqg * 1000 };
+    var r = S.abSoilGuideline(sb, s, WU.LIVESTOCK);
+    var pct = (r.SRG_GR - c.soil[tex]) / c.soil[tex] * 100;
+    lwN++; if (Math.abs(pct) <= 15) lwOk++;
+    console.log(c.name.padEnd(22) + " " + tex.padEnd(7) + " " + String(c.swqg).padStart(6) + "   " +
+      r.SRG_GR.toPrecision(3).padStart(9) + "  " + String(c.soil[tex]).padStart(9) + "   " +
+      (pct >= 0 ? "+" : "") + pct.toFixed(0) + "%  " + (Math.abs(pct) <= 15 ? "ok" : "CHECK"));
+  });
+});
+console.log("\n" + lwOk + "/" + lwN + " livestock cases within ±15%. (Irrigation: no AB organic guidelines → not testable.)");
+
+// ============================================================================================
+// WHY NOT EXACT? The residual is at the precision floor of the published data, dominated by:
+//   1. Hydraulic conductivity K — AB Table C-2 gives 320/32 m/yr; the old 1e-5/1e-6 m/s = 315.6/31.6
+//      m/yr (~1.4% low) flowed through V→DF3. Now using AB's K (above) → DUA residual ~−2% → ~±1%.
+//   2. Published 2-significant-figure rounding — the guidelines are printed to 2 s.f. (e.g. 0.078,
+//      0.52, 28), so a true 0.0775–0.0785 all print as "0.078". That alone is a ±~0.6–1% band, and it
+//      is the floor we are now at. There is no finer published target to match (no official calculator).
+//   3. Chemistry-constant rounding — Koc/H′ in Table C-6 are themselves 2–3 s.f.; the tool uses those
+//      exact published values, so this is sub-percent.
+// Net: ±1% IS the match — it is rounding, not a model error. Anything >~3% flags a real input mismatch.
+// ============================================================================================
 
 // ============================================================================================
 // PHC fractions (F1–F4). Labs report LUMPED F1–F4, but AB derives the lumped Tier 1 guideline

@@ -46,7 +46,7 @@
    "henry": 0.422,
    "sol_mg_L": 1100,
    "half_life_yr": 2.19,
-   "src": "USEPA1996a; half_life 2.19 yr from AB Tier 1 Table C-6 (CCME), was null — Emma to confirm"
+   "src": "USEPA1996a; half_life 2.19 yr from AB Tier 1 Table C-6 (CCME) — CONFIRMED by Emma 2026-06-24"
   },
   "Tetrachloroethylene": {
    "koc": 265,

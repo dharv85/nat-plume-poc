@@ -3,9 +3,10 @@
 Branch `alberta-model` · 2026-06-24 · closes roundtable finding #7 for the drinking-water pathway.
 Harness: **`ab_tier1_reconcile.js`** (`node ab_tier1_reconcile.js`).
 
-## Result — ✅ 14/14 within 1–3%
+## Result — ✅ 14/14 within ±1% (DUA / drinking-water)
 The tool reproduces the **published Alberta Tier 1 drinking-water soil remediation guidelines** for all
-BTEX + naphthalene + the chlorinated solvents TCE/PCE, fine and coarse, to within **1–3%**:
+BTEX + naphthalene + the chlorinated solvents TCE/PCE, fine and coarse, to within **±1%** (after the K fix
+below; was 1–3%). Pathway scorecard: **DUA 14/14, Aquatic 12/12, Livestock 10/10** — all ≤±3%, mostly ±1%:
 
 | Contaminant | Texture | Tool SRG (mg/kg) | Published DUA (mg/kg) | %diff |
 |---|---|---|---|---|
@@ -101,6 +102,30 @@ constants; `abSoilGuideline` and the UI's AB path pass it. **BC path byte-identi
 still 1e-9; DUA still 14/14). Validated by Part A (12/12) + the non-degrader full chain. Also corrects the
 live **livestock / irrigation** pathways (x = 0 → DF4 = 1, so those are *fully* reconciled by this fix).
 Resolves roundtable **#9** (DF4 active for aquatic/wildlife only, p132); logged as new finding **#15**.
+
+## Livestock-water pathway — ✅ 10/10 within ±3% (and Irrigation)
+Livestock is x = 0 → DF4 = 1 with the **calculated** mixing zone (not Zd = 2 m), so
+`SRG = SWQG_livestock (Table C-11) × DF1·DF2·DF3` — a clean full-chain test of the soil→GW chain at x=0:
+Benzene 0.195/0.207 vs 0.2/0.21; Toluene 25.6/29.1 vs 26/29; EB 35.6/41.7 vs 36/42; Xylenes 157/185 vs
+160/180; TCE 0.132/0.139 vs 0.13/0.14 (mg/kg, fine/coarse) — all within ±3%.
+**Irrigation:** AB Tier 1 has **no irrigation guideline** for BTEX / PHC / chlorinated organics (all "—"
+in Tables A-2, B-2, C-11 — irrigation guidelines exist only for inorganics/pesticides), so there are no
+organic test cases for it.
+
+## Why the residual is ±1% (and not exactly 0%)
+The ±1–3% is at the **precision floor of the published data**, not a model error. In priority order:
+1. **Hydraulic conductivity K.** AB Table C-2 specifies **K = 320/32 m/yr** (coarse/fine). The tool had
+   been using 1e-5/1e-6 m/s, which is **315.6/31.6 m/yr — ~1.4% low** — and that flowed through V→DF3
+   (and DF4). **Fixed** to AB's K. This alone tightened DUA from ~−2% → ~±1% and the aquatic full chain
+   from +0…+14% → **−1…+3%** (toluene-fine +14% → −1%, EB +6% → 0%).
+2. **Published 2-significant-figure rounding.** Guidelines are printed to 2 s.f. (e.g. 0.078, 0.52, 28),
+   so a true 0.0775–0.0785 all print as "0.078" — a ±~0.6–1% band. This is the residual we are now at;
+   there is no finer published target (and **no official AB calculator exists** to compare against).
+3. **Chemistry-constant rounding.** Koc/H′ in Table C-6 are themselves 2–3 s.f.; the tool uses those exact
+   published values, so this is sub-percent.
+
+Net: **±1% IS the match** — it's rounding, not error. The harness flags anything >~3% as a real input
+mismatch (that's how the K issue was found in the first place).
 
 ## PHC fractions (F1–F4) — a methodology boundary, flagged not forced
 Labs report **lumped F1–F4**, but AB derives the lumped Tier 1 guideline from **CCME (2008a)

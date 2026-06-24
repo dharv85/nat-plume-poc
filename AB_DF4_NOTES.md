@@ -63,5 +63,11 @@ the right equation.**
 - Source depth Z = 3 m (→ b = 0 → DF2 = 1); x = 10 m surface water / 0 m potable & agricultural;
   Y = X = 10 m. All CONFIRMED.
 
-## Still for Emma to confirm
-- TCE saturated half-life **2.19 yr** (Table C-6, CCME) — now in `ab_a6.json` (was null).
+## Confirmed by Emma
+- TCE saturated half-life **2.19 yr** (Table C-6, CCME) — **CONFIRMED by Emma 2026-06-24**; in `ab_a6.json`.
+
+## Postscript — K fix tightened the aquatic match
+Adopting AB Table C-2's **K = 320/32 m/yr** (the tool had been using 1e-5/1e-6 m/s = 315.6/31.6 m/yr,
+~1.4% low) tightened the aquatic full chain from +0…+14% to **−1…+3%** (e.g. toluene-fine +14% → −1%).
+The remaining ±1% is published 2-significant-figure rounding. See the "Why not exact" section of
+`AB_TIER1_RECONCILIATION.md`.
