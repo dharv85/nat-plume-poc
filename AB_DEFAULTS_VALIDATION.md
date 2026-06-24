@@ -99,3 +99,16 @@ all in the group must be):
 The tool currently lets each input be edited independently. **Decision for Emma:** enforce the C-2
 linked groups (e.g. editing K prompts/forces a paired i), or leave free-edit with a note. Not yet
 implemented.
+
+## "Not in C-1" parameters — confirmed handling from the guidance
+Resolved against the AB Tier 2 document (citations below):
+
+| Parameter | Guidance | Source | Tool action |
+|---|---|---|---|
+| **Infiltration I** | **"Cannot be adjusted at this time, with one exception"** — fixed by texture (coarse 0.06 / fine 0.012 m/y). Exception: fine recharge may apply at a coarse site if a continuous **fine layer ≥1 m** overlies the aquifer. | **Table 6 (p50)**; A-2; p105/108 | Make I **read-only for AB**, set by texture; add the fine-layer exception as an option. |
+| **Effective porosity n_e** | **AB does NOT use n_e.** DF4 velocity is **v = V / (θ_t·R_s)** with **θ_t = TOTAL porosity**. | **DF4 eqs, p104** | For AB compute velocity with **total porosity n** (not n_e); hide/ignore n_e. ⚠️ current tool uses n_e=0.25 → AB velocity ~44% high. |
+| **Aquifer thickness d_a** | Not in the adjustable-parameter list → **not adjustable at Tier 2**; fixed at **5 m** (A-3). Used in DF3 mixing. | **Table 6 (p50)**; A-3 | Make d_a **read-only for AB**, fixed 5 m. |
+
+**Also found (engine-level, flag for Craig/Emma):** mixing-zone thickness **Z_d is fixed at 2 m for the
+drinking-water pathway** (calculated for all other pathways) — p103 (AB-vs-BC divergence; BC computes
+d_m capped at aquifer thickness). The engine currently always calculates the mixing zone.
