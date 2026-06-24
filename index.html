@@ -201,17 +201,9 @@
   // OAuth (optional; demo runs fine signed-out). Client ID registered in SLR Canada org.
   var CONFIG = { CLIENT_ID: "Ex0iH1kCIRUC31dk", PORTAL_URL: "https://slr-pro.maps.arcgis.com" };
   // DEMO compliance standards (µg/L) — illustrative only; real values come from EQuIS.
-  // PLACEHOLDER / DEMO standards only — illustrative, NOT authoritative. Real BC CSR Schedule 3.2 /
-  // AB Tier 2 / CCME standards load from SLR EQuIS (never hard-coded here). Values flagged DEMO.
-  var DEMO_STANDARDS = {
-    "(manual entry)": null,
-    "BC CSR — DEMO (placeholder)": {
-      "Drinking Water (DW)": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5, "Tetrachloroethylene": 30 },
-      "Aquatic Life (AW)": { "Benzene": 110, "Toluene": 2, "Ethylbenzene": 90 } },
-    "AB Tier 2 — DEMO (placeholder)": {
-      "Potable Groundwater": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5 } },
-    "CCME 2006 — DEMO (placeholder)": { "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 } }
-  };
+  // Compliance standards come from standards_bc_ab.json (real BC/AB action levels exported from
+  // SLR EQuIS — TRAINING db, flagged "verify"). Grouped family → standard set, looked up by the
+  // selected contaminant's CAS. NOT hard-coded here.
   // chlorinated chain defaults (yr)
   var CHAIN_HL = { PCE: 5.0, TCE: 3.0, "cis-DCE": 2.0, VC: 1.0 };
 </script>
@@ -297,10 +289,49 @@ require([
   var srcLayer = new GraphicsLayer();
   var plumeSource = new LocalMediaElementSource({ elements: [] });
   var plumeLayer = new MediaLayer({ source: plumeSource });
-  map.addMany([plumeLayer, srcLayer]);
-  var source = { lon: -114.0719, lat: 51.0447 };
+  var wellsLayer = new GraphicsLayer();
+  map.addMany([plumeLayer, srcLayer, wellsLayer]);
+  var source = { lon: -114.0541, lat: 51.1340 }; // near the demo EQuIS wells (move anywhere)
   var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
   var viewReady = false;
+
+  // popup: latest analytical results per well (built with textContent — XSS-safe, S3)
+  function wellPopup(feature) {
+    var p = feature.graphic.attributes, res = p.results || {};
+    var div = document.createElement("div"); div.style.maxHeight = "260px"; div.style.overflow = "auto";
+    var keys = Object.keys(res);
+    if (!keys.length) { div.textContent = "No analytical results."; return div; }
+    keys.sort(function (a, b) { return (res[a].name || a).localeCompare(res[b].name || b); });
+    var h = document.createElement("div"); h.style.cssText = "font-size:11px;color:#555;margin:0 0 4px";
+    h.textContent = keys.length + " analytes · latest sample"; div.appendChild(h);
+    var tbl = document.createElement("table"); tbl.style.cssText = "font-size:11px;border-collapse:collapse";
+    keys.forEach(function (k) {
+      var r = res[k], tr = document.createElement("tr");
+      function td(t, c) { var e = document.createElement("td"); e.style.cssText = "padding:1px 8px 1px 0;" + (c || ""); e.textContent = t; return e; }
+      tr.appendChild(td(r.name || k));
+      tr.appendChild(td((r.d === "N" ? "<" : "") + r.v + " " + r.u, r.d === "N" ? "color:#999" : "font-weight:600"));
+      tr.appendChild(td(r.date, "color:#888"));
+      tbl.appendChild(tr);
+    });
+    div.appendChild(tbl); return div;
+  }
+
+  // EQuIS monitoring wells (local demo file — gitignored; confidential, never pushed to public)
+  function loadWells() {
+    fetch("wells_demo.geojson").then(function (r) { return r.json(); }).then(function (gj) {
+      var geoms = [];
+      gj.features.forEach(function (f) {
+        var c = f.geometry.coordinates, p = f.properties;
+        var col = p.type === "MW" ? [0, 110, 200] : p.type === "SW" ? [0, 160, 80] : [120, 90, 40];
+        var pt = new Point({ longitude: c[0], latitude: c[1] }); geoms.push(pt);
+        wellsLayer.add(new Graphic({ geometry: pt, attributes: p,
+          symbol: { type: "simple-marker", style: "circle", color: col, size: 7, outline: { color: "white", width: 1 } },
+          popupTemplate: { title: "{code} ({type}) — {facility}", content: wellPopup } }));
+        wellsLayer.add(new Graphic({ geometry: pt, symbol: { type: "text", color: "#1b3a5b", haloColor: "white", haloSize: 1, text: p.code, yoffset: 8, font: { size: 8 } } }));
+      });
+      if (geoms.length) view.goTo(geoms).catch(function () {});
+    }).catch(function () { /* no wells file — fine */ });
+  }
 
   function drawSource() {
     srcLayer.removeAll();
@@ -317,26 +348,40 @@ require([
     return [source.lon + east/(111320*Math.cos(source.lat*Math.PI/180)), source.lat + north/111320];
   }
 
-  // ---- compliance standard: looks up the standard for the contaminant chosen above (no 2nd pick) ----
-  function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); }); }
-  function curContaminant() { var n = $("sub").value; return n.indexOf("manual") === 0 ? null : n; }
-  function onFw() { var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { fillSelect($("tbl"), ["—"]); } else { fillSelect($("tbl"), Object.keys(fw)); }
-    updateStandard(); }
+  // ---- compliance standard: real BC/AB action levels (EQuIS export), grouped family → set, looked up by CAS ----
+  function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) {
+    var o = document.createElement("option"); o.value = (it && it.value !== undefined) ? it.value : it;
+    o.textContent = (it && it.label !== undefined) ? it.label : it; sel.appendChild(o); }); }
+  function curCAS() { var n = $("sub").value; if (n.indexOf("manual") === 0 || !DB) return null; var e = DB.substances[n]; return e ? e.cas : null; }
+  var STD = null;
+  fetch("standards_bc_ab.json").then(function (r) { return r.json(); }).then(function (s) {
+    STD = s;
+    var fams = Object.keys(s.families).sort();
+    fillSelect($("fw"), [{ value: "manual", label: "(manual entry)" }].concat(fams.map(function (f) { return { value: f, label: f }; })));
+    $("fw").value = fams.indexOf("BC CSR") >= 0 ? "BC CSR" : fams[0];
+    onFw(); run();
+  }).catch(function (e) { $("stdout").textContent = "standards load failed: " + e.message; });
+  function onFw() {
+    if (!STD) return;
+    var fam = $("fw").value;
+    if (fam === "manual") { fillSelect($("tbl"), [{ value: "", label: "—" }]); updateStandard(); return; }
+    var codes = STD.families[fam] || [];
+    fillSelect($("tbl"), codes.map(function (c) { return { value: c, label: STD.labels[c] || c }; }));
+    updateStandard();
+  }
   function updateStandard() {
     var out = $("stdout"); out.textContent = "";
-    var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { out.textContent = "Manual threshold (set below)."; return; }
-    var tbl = fw[$("tbl").value] || {}, c = curContaminant();
-    if (!c) { out.textContent = "Select a contaminant above to look up a standard."; return; }
-    var b = document.createElement("b"); b.textContent = c; out.appendChild(b);
-    var v = tbl[c];
-    if (v == null) { out.appendChild(document.createTextNode(" — no DEMO standard in this table; set threshold manually.")); return; }
-    var mgL = Number(v) / 1000; $("tc").value = mgL;
-    out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
-    var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "DEMO"; out.appendChild(badge);
+    if (!STD || $("fw").value === "manual") { out.textContent = "Manual threshold (set below)."; return; }
+    var code = $("tbl").value, cas = curCAS();
+    var b = document.createElement("b"); b.textContent = $("sub").value; out.appendChild(b);
+    if (!cas) { out.appendChild(document.createTextNode(" — pick a database substance to look up a standard.")); return; }
+    var rec = (STD.standards[code] || {})[cas];
+    if (!rec) { out.appendChild(document.createTextNode(" — no value for this analyte in this set; set threshold manually.")); return; }
+    var mgL = (rec.u === "mg/L") ? rec.v : rec.v / 1000;   // BC values are µg/L, AB mg/L
+    $("tc").value = Number(mgL.toPrecision(4));
+    out.appendChild(document.createTextNode(" = " + rec.v + " " + rec.u + " (" + Number(mgL.toPrecision(4)) + " mg/L) "));
+    var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "EQuIS TRAINING — verify"; out.appendChild(badge);
   }
-  fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "BC CSR — DEMO (placeholder)";
   $("fw").addEventListener("change", function () { onFw(); run(); });
   $("tbl").addEventListener("change", function () { updateStandard(); run(); });
 
@@ -534,7 +579,7 @@ require([
   ["cs","cl_in","cz_in","n","nw","ne","rhob","dwt","dfr","Xlen","da","I","K","igr"].forEach(function (id) { $(id).addEventListener("change", run); });
 
   onFw();
-  view.when(function () { viewReady = true; drawSource(); status("Ready."); run(); });
+  view.when(function () { viewReady = true; drawSource(); loadWells(); status("Ready."); run(); });
 });
 </script>
 </body>
