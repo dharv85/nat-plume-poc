@@ -31,8 +31,10 @@ function sub(name, swqg_ugL) {
   var a = AB[name];
   return { name: name, cls: (a.cls || "petroleum"),
     koc: (a.koc != null ? a.koc : null), kd: (a.kd != null ? a.kd : null), henry: a.henry,
-    t_half_unsat_d: (a.half_life_yr != null ? a.half_life_yr * 365.25 : Infinity),
-    t_half_sat_d: (a.half_life_yr != null ? a.half_life_yr * 365.25 : Infinity),
+    // 365.0 (not 365.25) to match the engine's day-year convention: lambdaPerYr() converts days→yr with
+    // 365.0, so the yr→days input must use the same factor or λ is off by 365/365.25 (≈0.07%). [review fix]
+    t_half_unsat_d: (a.half_life_yr != null ? a.half_life_yr * 365.0 : Infinity),
+    t_half_sat_d: (a.half_life_yr != null ? a.half_life_yr * 365.0 : Infinity),
     solubility_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : Infinity),
     detection_limit_ug_g: null, background_ug_g: null, standards: { DW: swqg_ugL, AW: swqg_ugL } };
 }
