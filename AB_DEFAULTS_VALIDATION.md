@@ -65,3 +65,37 @@ Replace the single AB default with the two AB scenarios from A-2/A-3:
 
 Implementation: an AB **Fine/Coarse soil toggle** in the pathway that loads the matching column.
 Apply only after Emma confirms against her copy of Appendix A.
+
+---
+
+## AB allowable ranges — Appendix C Table C-1 (wired into input flagging)
+Texture-dependent illustrative ranges, now driving the AB range flags (inputs outside are flagged
+but still allowed). K converted m/y → m/s.
+
+| Parameter | id | Coarse default / range | Fine default / range |
+|---|---|---|---|
+| Bulk density ρb | rhob | 1.7 / **1.5–1.8** | 1.4 / **1.3–1.6** |
+| Organic carbon foc | foc | 0.005 / **0.0005–0.007** | 0.005 / **0.0005–0.03** |
+| Sat. hydraulic cond. K | K | 320 m/y / **32–3200 m/y** (1.01e-6–1.01e-4 m/s) | 32 m/y / **0.032–32 m/y** (1.01e-9–1.01e-6 m/s) |
+| Hydraulic gradient i | igr | 0.028 / **0.001–0.1** | (same) |
+| Thickness of contam. Z | Z | 3 / **0.5–5** | (same) |
+| Depth to groundwater d | dwt | 3 / **0–10** | (same) |
+| Site length ∥ flow X | Xlen | 10 / **5–30** | (same) |
+| Site width ⊥ flow Y | Y | 10 / **5–30** | (same) |
+| Distance to surface water | — | 10 / 0–300 | (not yet a tool input) |
+| Distance to potable/ag water | — | 0 / 0–300 | (= the x point-of-compliance) |
+
+**Not in C-1 (so no AB range check):** infiltration I, effective porosity n_e, aquifer thickness d_a.
+Porosities (n, n_w, n_a) are **calculated** from bulk density (C.8.2), not independently adjustable.
+
+## ⚠️ Governance to confirm with Emma — Table C-2 "Linked Parameter Groups"
+AB Tier 2 requires certain parameters be **adjusted together as a group** (if one is site-specific,
+all in the group must be):
+- **Group 1 – Soil properties:** bulk density + moisture + total/air/water-filled porosity.
+- **Group 2 – Source dimensions:** source length, width, depth to contamination, thickness, depth to GW.
+- **Group 3 – Hydrogeological:** saturated hydraulic conductivity + hydraulic gradient.
+- **Independent (vary individually):** foc, distance to receptor.
+
+The tool currently lets each input be edited independently. **Decision for Emma:** enforce the C-2
+linked groups (e.g. editing K prompts/forces a paired i), or leave free-edit with a note. Not yet
+implemented.
