@@ -129,3 +129,19 @@ review. Remaining items are not numerical-accuracy gaps but **deployment/scope**
 (#2/#4 — TRAINING export, fail-closed), CSM/vapour-intrusion banner (#6), porosity auto-derivation (#5),
 metals workflow (Emma), and Emma's sign-off on transcribed values. Defensible today as a **screening &
 visualisation aid** with reconciled engine math; the open items above are the gate to regulatory use.
+
+## 6. Code review (simulated Feynman + Woz, 2026-06-24)
+A line-level review of the reconciled engine (`soil_to_gw.js`, `ab_tier1_reconcile.js`) with independent
+hand-calcs. **No correctness bug in the reconciled result** — an independent benzene DUA hand-calc matched
+the tool exactly; 41/41 cases hold; BC byte-identical (1e-9). Findings:
+- ✅ FIXED — **half-life yr→days used 365.25 while the engine's `lambdaPerYr` uses 365.0** (λ off ~0.07%,
+  within rounding). Harness aligned to 365.0.
+- ✅ FIXED — **`fSaturated` AB mode returned silent `NaN` if `sp.d` was missing.** Now **throws** a clear
+  error (a silent default was rejected — it would drop the depth factor → BC-like decay).
+- ⚠ OPEN (Tier-2) — **`e^(−0.07·d)` decay factor validated only at d = 3 m** (Tier 1 default). The form is
+  right (5 half-lives match to ±5%) but d-sensitivity is untested for site-specific d; and it was
+  reconstructed from a garbled PDF extraction → a human should confirm the p134–135 source equation.
+- ⚠ OPEN (Tier-2) — **DF2 unsaturated-zone decay carries no depth factor** and is untested at the default
+  (b = 0 → DF2 = 1); confirm AB's convention for **b > 0** sites.
+- ℹ NOTED — `x_poc` isn't set to 0 for livestock/irrigation (DF4 = 1 is enforced by the use-type branch,
+  not `sp.x_poc`); correct as called, fragile if `fSaturated` is invoked directly. See `AB_DF4_NOTES.md`.

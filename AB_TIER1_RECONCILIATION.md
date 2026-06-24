@@ -186,6 +186,11 @@ AB site work, since site PHC data arrives as lumped F1–F4.
 - ◐ **Formal sign-off:** **there is no official AB Tier 2 calculator** — the published AB Tier 1 guidelines
   are the authoritative target, and the tool reproduces them to within published 2-s.f. precision.
   Remaining is **Emma's independent review** of the worked examples + transcribed standards.
+- ⚠ **Tier-1 vs Tier-2 validity boundary:** this reconciliation is at the **Tier 1 generic defaults**
+  (d = 3 m, b = 0, Table C-3). The DF4 `e^(−0.07·d)` decay factor is therefore validated **only at d = 3 m**,
+  and DF2's unsaturated decay is untested (b = 0 → DF2 = 1). Before **Tier-2 site-specific** use (other
+  water-table depths / unsaturated thickness), confirm the `e^(−0.07·d)` form at another d and AB's DF2
+  decay convention for b > 0. Code-review actions + open items: see `AB_DF4_NOTES.md` and roundtable §6.
 
 ## How to extend
 Add rows to `CASES` (contaminant, potable SWQG mg/L, published DUA fine/coarse). Re-run; each case prints
