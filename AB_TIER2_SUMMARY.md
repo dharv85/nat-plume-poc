@@ -33,6 +33,9 @@ Soil & Groundwater Remediation Guidelines, 2024-06* (Appendix A, Appendix C, Tab
 | **Validation record** | `AB_DEFAULTS_VALIDATION.md` (defaults) + `AB_TIER1_RECONCILIATION.md` (reconciliation) + `AB_DF4_NOTES.md` (DF4) + `ab_residual_analysis.js` (residual audit). | — |
 
 ## 🔎 Remaining — for Emma (science sign-off)
+> **★ Emma: start at [`AB_EMMA_REVIEW.md`](AB_EMMA_REVIEW.md)** — the single consolidated sign-off checklist
+> (chemistry/defaults, reconciliation acceptance, Tier-2/engine items, metals, production standards).
+
 1. **Confirm the transcribed values** — A-2/A-3 defaults, C-1 ranges, and A-6 chemistry against her copy of the guidance (I transcribed + verified line-by-line, but a second set of eyes on regulatory numbers).
 2. ✅ **PHC sub-fraction half-lives** — CONFIRMED (Dan): F1 C6–C10 = 1.95 yr, F2 C10–C16 = 4.79 yr, F3/F4 non-degrading.
 3. ✅ **Pentachlorophenol** — DECIDED (Dan): AB uses the single Koc (2500). Implemented.
