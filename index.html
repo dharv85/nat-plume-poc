@@ -77,6 +77,7 @@
       <div id="timeWrap" style="display:none">
         <label>Simulation time (yr)</label>
         <input id="t" type="number" value="20" step="1" min="0">
+        <div style="font-size:9.5px;color:#8a6d00;background:#fff8e6;border:1px solid #f0d68a;border-radius:4px;padding:3px 5px;margin-top:4px;line-height:1.3">⚠ Transient assumes a <b>continuous, non-depleting source</b> (infinite mass). At t = 500 yr this is the AB Tier 2 <b>regulatory-derivation scenario</b> — not a time-of-travel prediction. For a finite-mass site forecast, set a source half-life.</div>
       </div>
     </fieldset>
 
@@ -113,6 +114,12 @@
         <option value="AB">AB Tier 2</option>
       </select>
       <div id="pathBody" style="display:none">
+        <div id="abTexRow" style="display:none">
+          <label>AB soil texture <span class="hint">(Tier 2 Table A-2)</span></label>
+          <div class="seg" id="texSeg"><button data-tex="coarse" class="on">Coarse</button><button data-tex="fine">Fine</button></div>
+          <div class="chk" style="margin-top:5px"><input type="checkbox" id="abFineLayer"><label for="abFineLayer" style="margin:0">Continuous fine layer ≥1 m over coarse <span class="hint">(apply fine recharge — Table 6 exception)</span></label></div>
+        </div>
+        <div id="abC2Note" style="display:none;font-size:10px;color:#8a6d00;background:#fff8e6;border:1px solid #f0d68a;border-radius:4px;padding:4px 6px;margin-top:5px;line-height:1.35"></div>
         <label>Start from (run all, or skip ahead)</label>
         <select id="start">
           <option value="soil">① Soil concentration C_s</option>
@@ -137,8 +144,10 @@
           <div><label>d_a aquifer (m)</label><input id="da" type="number" value="5" step="1"></div>
           <div><label>I infil (m/yr)</label><input id="I" type="number" value="0.55" step="0.05"></div>
         </div>
-        <label>BC infiltration look-up <span class="hint">(44 centres → sets I)</span></label>
-        <select id="city"><option value="">— pick a city —</option></select>
+        <div id="cityRow">
+          <label>BC infiltration look-up <span class="hint">(44 centres → sets I)</span></label>
+          <select id="city"><option value="">— pick a city —</option></select>
+        </div>
         <div class="row">
           <div><label>K (m/s)</label><input id="K" type="number" value="3e-5" step="1e-6"></div>
           <div><label>i gradient</label><input id="igr" type="number" value="0.008" step="0.001"></div>
@@ -161,6 +170,16 @@
       <legend>Compliance standard <span class="demo">DEMO</span></legend>
       <label>Framework</label><select id="fw"></select>
       <label>Table / condition</label><select id="tbl"></select>
+      <div id="wuRow" style="display:none">
+        <label>Water use → point of compliance <span class="hint">AB Tier 2</span></label>
+        <select id="wateruse">
+          <option value="DW">Drinking water (potable) — x = 0</option>
+          <option value="IW">Irrigation (agricultural) — x = 0</option>
+          <option value="LW">Livestock (agricultural) — x = 0</option>
+          <option value="AW">Aquatic life (surface water) — x = 10 m</option>
+          <option value="WW">Wildlife — x = 10 m</option>
+        </select>
+      </div>
       <div id="stdout"></div>
       <div class="hint">Standard for the contaminant selected above. Illustrative values; authoritative standards load from SLR EQuIS.</div>
     </fieldset>
@@ -201,17 +220,9 @@
   // OAuth (optional; demo runs fine signed-out). Client ID registered in SLR Canada org.
   var CONFIG = { CLIENT_ID: "Ex0iH1kCIRUC31dk", PORTAL_URL: "https://slr-pro.maps.arcgis.com" };
   // DEMO compliance standards (µg/L) — illustrative only; real values come from EQuIS.
-  // PLACEHOLDER / DEMO standards only — illustrative, NOT authoritative. Real BC CSR Schedule 3.2 /
-  // AB Tier 2 / CCME standards load from SLR EQuIS (never hard-coded here). Values flagged DEMO.
-  var DEMO_STANDARDS = {
-    "(manual entry)": null,
-    "BC CSR — DEMO (placeholder)": {
-      "Drinking Water (DW)": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5, "Tetrachloroethylene": 30 },
-      "Aquatic Life (AW)": { "Benzene": 110, "Toluene": 2, "Ethylbenzene": 90 } },
-    "AB Tier 2 — DEMO (placeholder)": {
-      "Potable Groundwater": { "Benzene": 5, "Toluene": 24, "Ethylbenzene": 2.4, "Xylenes": 300, "Trichloroethylene": 5 } },
-    "CCME 2006 — DEMO (placeholder)": { "Freshwater Aquatic Life": { "Benzene": 370, "Toluene": 2, "Ethylbenzene": 90 } }
-  };
+  // Compliance standards come from standards_bc_ab.json (real BC/AB action levels exported from
+  // SLR EQuIS — TRAINING db, flagged "verify"). Grouped family → standard set, looked up by the
+  // selected contaminant's CAS. NOT hard-coded here.
   // chlorinated chain defaults (yr)
   var CHAIN_HL = { PCE: 5.0, TCE: 3.0, "cis-DCE": 2.0, VC: 1.0 };
 </script>
@@ -237,15 +248,58 @@ require([
   // ---- load substance DB, populate picker ----
   fetch("substances.json").then(function (r) { return r.json(); }).then(function (db) {
     NATEngine.setSubstanceDB(db); DB = db;
-    var names = Object.keys(db.substances).sort();
-    names.unshift("(manual: R & half-life below)");
-    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n; $("sub").appendChild(o); });
-    $("sub").value = "Benzene";
+    refreshSubstanceList(); $("sub").value = "Benzene";
     onContaminant(); updateStandard();
   }).catch(function (e) { status("Substance DB load failed: " + e.message); });
+  // Picker = BC Protocol 28 DB; + AB-only A-6 contaminants (PHC fractions, VC, etc.) when AB framework active.
+  function refreshSubstanceList() {
+    if (!DB) return;
+    var cur = $("sub").value, names = Object.keys(DB.substances).sort();
+    names.unshift("(manual: R & half-life below)");
+    var abLabel = {};
+    if ($("jur").value === "AB" && AB6) {
+      Object.keys(AB6.substances).filter(function (n) { return !DB.substances[n]; }).sort()
+        .forEach(function (n) { names.push(n); abLabel[n] = true; });
+    }
+    var sel = $("sub"); sel.textContent = "";
+    names.forEach(function (n) { var o = document.createElement("option"); o.value = n; o.textContent = n + (abLabel[n] ? " (AB)" : ""); sel.appendChild(o); });
+    sel.value = (names.indexOf(cur) >= 0) ? cur : "Benzene";
+  }
 
   // manual R / half-life inputs appear only in manual mode
   var manualR = 2.0, manualHL = 2.0;
+  // AB Table A-6 chemical override: when AB framework is selected, source Koc/H'/solubility/half-life
+  // from A-6 instead of BC Protocol 28 (they differ materially — see AB_DEFAULTS_VALIDATION.md).
+  // Metals stay on the BC DB (A-6 has no Koc for inorganics).
+  var AB6 = null;
+  fetch("ab_a6.json").then(function (r) { return r.json(); }).then(function (a) { AB6 = a; refreshSubstanceList(); onContaminant(); if (viewReady) run(); }).catch(function () {});
+  function chemFor(name) {
+    var e = DB.substances[name];
+    var a = (AB6 && AB6.substances[name]) ? AB6.substances[name] : null;
+    if ($("jur").value === "AB" && a && (!e || e.cls !== "metal")) {
+      return { koc: (a.koc != null ? a.koc : null), kd: (a.kd != null ? a.kd : null), henry: a.henry,
+        sol_ug_L: (a.sol_mg_L != null ? a.sol_mg_L * 1000 : null),
+        hl_yr: (a.half_life_yr != null ? a.half_life_yr : null), cls: (e ? e.cls : (a.cls || "petroleum")), src: "AB A-6" };
+    }
+    if (!e) return { koc: 0, kd: null, henry: 0, sol_ug_L: null, hl_yr: null, cls: "petroleum", src: "—" }; // AB-only contaminant w/o AB framework
+    var pHv = $("pH") ? num("pH") : 6.5; // BC: NATEngine.koc handles pH-dependent isotherms (e.g. PCP)
+    return { koc: NATEngine.koc(name, pHv), kd: null, henry: (e.henry || 0), sol_ug_L: e.solubility_ug_L,
+      hl_yr: (e.t_half_sat_d ? e.t_half_sat_d / 365.25 : null), cls: e.cls, src: "BC P28" };
+  }
+  function retardationFor(name, foc, rhob, n, pH) {
+    var c = chemFor(name);
+    if (c.cls === "metal") return NATEngine.retardation(name, foc, rhob, n, pH); // metals: BC pH-Kd
+    if (c.kd != null) return 1 + (rhob / n) * c.kd;        // fixed-Kd substance (e.g. DIPA, A-6 mean Kd)
+    return 1 + (rhob / n) * ((c.koc || 0) * foc);
+  }
+  function soilProps() { // rhob, n from the active framework defaults (else BIOSCREEN generic)
+    var active = $("jur").value !== "manual";
+    return { rhob: (active && $("rhob")) ? num("rhob") : 1.7, n: (active && $("n")) ? num("n") : 0.36 };
+  }
+  // AB water use → point of compliance x: potable / irrigation / livestock (agricultural) = 0;
+  // aquatic (surface water) / wildlife = 10 m. (AB Tier 2 A-3 / Table 6)
+  function waterUse() { return ($("jur").value === "AB" && $("wateruse")) ? $("wateruse").value : null; }
+  function xPOC() { var wu = waterUse(); if (wu === null) return null; return (wu === "AW" || wu === "WW") ? 10 : 0; }
   function onContaminant() {
     var name = $("sub").value, d = $("derived");
     if (name.indexOf("manual") === 0) {
@@ -253,10 +307,11 @@ require([
       return;
     }
     try {
-      var R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH"));
-      var hl = NATEngine.halfLifeYears(name, "sat");
+      var s = soilProps(), c = chemFor(name);
+      var R = retardationFor(name, num("foc"), s.rhob, s.n, num("pH"));
+      var hl = c.hl_yr;
       d.textContent = "";
-      d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr")));
+      d.appendChild(document.createTextNode("R = " + R.toFixed(2) + " · half-life = " + (hl == null ? "—  (conservative: no decay)" : hl.toFixed(2) + " yr") + "  [" + c.src + "]"));
     } catch (e) { d.textContent = e.message; }
   }
   ["sub", "foc", "pH"].forEach(function (id) { $(id).addEventListener("change", function () { onContaminant(); updateStandard(); run(); }); });
@@ -285,7 +340,7 @@ require([
   function buildModel() {
     var name = $("sub").value, R, hl;
     if (name.indexOf("manual") === 0) { R = manualR; hl = manualHL; }
-    else { R = NATEngine.retardation(name, num("foc"), 1.7, 0.36, num("pH")); hl = NATEngine.halfLifeYears(name, "sat"); }
+    else { var s = soilProps(); R = retardationFor(name, num("foc"), s.rhob, s.n, num("pH")); hl = chemFor(name).hl_yr; }
     return { C0: num("c0"), v: num("v"), alpha_x: num("ax"), alpha_y: num("ay"), alpha_z: num("az"),
       Y: num("Y"), Z: num("Z"), R: R, half_life_yr: hl,
       water_table_source: $("wt").checked };
@@ -297,10 +352,49 @@ require([
   var srcLayer = new GraphicsLayer();
   var plumeSource = new LocalMediaElementSource({ elements: [] });
   var plumeLayer = new MediaLayer({ source: plumeSource });
-  map.addMany([plumeLayer, srcLayer]);
-  var source = { lon: -114.0719, lat: 51.0447 };
+  var wellsLayer = new GraphicsLayer();
+  map.addMany([plumeLayer, srcLayer, wellsLayer]);
+  var source = { lon: -114.0541, lat: 51.1340 }; // near the demo EQuIS wells (move anywhere)
   var view = new MapView({ container: "map", map: map, center: [source.lon, source.lat], zoom: 15 });
   var viewReady = false;
+
+  // popup: latest analytical results per well (built with textContent — XSS-safe, S3)
+  function wellPopup(feature) {
+    var p = feature.graphic.attributes, res = p.results || {};
+    var div = document.createElement("div"); div.style.maxHeight = "260px"; div.style.overflow = "auto";
+    var keys = Object.keys(res);
+    if (!keys.length) { div.textContent = "No analytical results."; return div; }
+    keys.sort(function (a, b) { return (res[a].name || a).localeCompare(res[b].name || b); });
+    var h = document.createElement("div"); h.style.cssText = "font-size:11px;color:#555;margin:0 0 4px";
+    h.textContent = keys.length + " analytes · latest sample"; div.appendChild(h);
+    var tbl = document.createElement("table"); tbl.style.cssText = "font-size:11px;border-collapse:collapse";
+    keys.forEach(function (k) {
+      var r = res[k], tr = document.createElement("tr");
+      function td(t, c) { var e = document.createElement("td"); e.style.cssText = "padding:1px 8px 1px 0;" + (c || ""); e.textContent = t; return e; }
+      tr.appendChild(td(r.name || k));
+      tr.appendChild(td((r.d === "N" ? "<" : "") + r.v + " " + r.u, r.d === "N" ? "color:#999" : "font-weight:600"));
+      tr.appendChild(td(r.date, "color:#888"));
+      tbl.appendChild(tr);
+    });
+    div.appendChild(tbl); return div;
+  }
+
+  // EQuIS monitoring wells (local demo file — gitignored; confidential, never pushed to public)
+  function loadWells() {
+    fetch("wells_demo.geojson").then(function (r) { return r.json(); }).then(function (gj) {
+      var geoms = [];
+      gj.features.forEach(function (f) {
+        var c = f.geometry.coordinates, p = f.properties;
+        var col = p.type === "MW" ? [0, 110, 200] : p.type === "SW" ? [0, 160, 80] : [120, 90, 40];
+        var pt = new Point({ longitude: c[0], latitude: c[1] }); geoms.push(pt);
+        wellsLayer.add(new Graphic({ geometry: pt, attributes: p,
+          symbol: { type: "simple-marker", style: "circle", color: col, size: 7, outline: { color: "white", width: 1 } },
+          popupTemplate: { title: "{code} ({type}) — {facility}", content: wellPopup } }));
+        wellsLayer.add(new Graphic({ geometry: pt, symbol: { type: "text", color: "#1b3a5b", haloColor: "white", haloSize: 1, text: p.code, yoffset: 8, font: { size: 8 } } }));
+      });
+      if (geoms.length) view.goTo(geoms).catch(function () {});
+    }).catch(function () { /* no wells file — fine */ });
+  }
 
   function drawSource() {
     srcLayer.removeAll();
@@ -317,31 +411,48 @@ require([
     return [source.lon + east/(111320*Math.cos(source.lat*Math.PI/180)), source.lat + north/111320];
   }
 
-  // ---- compliance standard: looks up the standard for the contaminant chosen above (no 2nd pick) ----
-  function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) { var o = document.createElement("option"); o.value = it; o.textContent = it; sel.appendChild(o); }); }
-  function curContaminant() { var n = $("sub").value; return n.indexOf("manual") === 0 ? null : n; }
-  function onFw() { var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { fillSelect($("tbl"), ["—"]); } else { fillSelect($("tbl"), Object.keys(fw)); }
-    updateStandard(); }
+  // ---- compliance standard: real BC/AB action levels (EQuIS export), grouped family → set, looked up by CAS ----
+  function fillSelect(sel, items) { sel.textContent = ""; items.forEach(function (it) {
+    var o = document.createElement("option"); o.value = (it && it.value !== undefined) ? it.value : it;
+    o.textContent = (it && it.label !== undefined) ? it.label : it; sel.appendChild(o); }); }
+  function curCAS() { var n = $("sub").value; if (n.indexOf("manual") === 0 || !DB) return null; var e = DB.substances[n]; return e ? e.cas : null; }
+  var STD = null;
+  fetch("standards_bc_ab.json").then(function (r) { return r.json(); }).then(function (s) {
+    STD = s;
+    var fams = Object.keys(s.families).sort();
+    fillSelect($("fw"), [{ value: "manual", label: "(manual entry)" }].concat(fams.map(function (f) { return { value: f, label: f }; })));
+    $("fw").value = fams.indexOf("BC CSR") >= 0 ? "BC CSR" : fams[0];
+    onFw();
+    syncComplianceToFramework($("jur").value); // if a framework was already chosen, align now
+    run();
+  }).catch(function (e) { $("stdout").textContent = "standards load failed: " + e.message; });
+  function onFw() {
+    if (!STD) return;
+    var fam = $("fw").value;
+    if (fam === "manual") { fillSelect($("tbl"), [{ value: "", label: "—" }]); updateStandard(); return; }
+    var codes = STD.families[fam] || [];
+    fillSelect($("tbl"), codes.map(function (c) { return { value: c, label: STD.labels[c] || c }; }));
+    updateStandard();
+  }
   function updateStandard() {
     var out = $("stdout"); out.textContent = "";
-    var fw = DEMO_STANDARDS[$("fw").value];
-    if (!fw) { out.textContent = "Manual threshold (set below)."; return; }
-    var tbl = fw[$("tbl").value] || {}, c = curContaminant();
-    if (!c) { out.textContent = "Select a contaminant above to look up a standard."; return; }
-    var b = document.createElement("b"); b.textContent = c; out.appendChild(b);
-    var v = tbl[c];
-    if (v == null) { out.appendChild(document.createTextNode(" — no DEMO standard in this table; set threshold manually.")); return; }
-    var mgL = Number(v) / 1000; $("tc").value = mgL;
-    out.appendChild(document.createTextNode(" = " + Number(v) + " µg/L (" + mgL + " mg/L) "));
-    var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "DEMO"; out.appendChild(badge);
+    if (!STD || $("fw").value === "manual") { out.textContent = "Manual threshold (set below)."; return; }
+    var code = $("tbl").value, cas = curCAS();
+    var b = document.createElement("b"); b.textContent = $("sub").value; out.appendChild(b);
+    if (!cas) { out.appendChild(document.createTextNode(" — pick a database substance to look up a standard.")); return; }
+    var rec = (STD.standards[code] || {})[cas];
+    if (!rec) { out.appendChild(document.createTextNode(" — no value for this analyte in this set; set threshold manually.")); return; }
+    var mgL = (rec.u === "mg/L") ? rec.v : rec.v / 1000;   // BC values are µg/L, AB mg/L
+    $("tc").value = Number(mgL.toPrecision(4));
+    out.appendChild(document.createTextNode(" = " + rec.v + " " + rec.u + " (" + Number(mgL.toPrecision(4)) + " mg/L) "));
+    var badge = document.createElement("span"); badge.className = "demo"; badge.textContent = "EQuIS TRAINING — verify"; out.appendChild(badge);
   }
-  fillSelect($("fw"), Object.keys(DEMO_STANDARDS)); $("fw").value = "BC CSR — DEMO (placeholder)";
   $("fw").addEventListener("change", function () { onFw(); run(); });
   $("tbl").addEventListener("change", function () { updateStandard(); run(); });
+  if ($("wateruse")) $("wateruse").addEventListener("change", run);
 
   // ---- centerline chart (canvas, log-y) ----
-  function plotChart(xs, series, Tc, L, C0) {
+  function plotChart(xs, series, Tc, L, C0, poc) {
     var cv = $("cl"), dpr = window.devicePixelRatio || 1;
     var w = cv.clientWidth, h = cv.clientHeight; cv.width = w*dpr; cv.height = h*dpr;
     var g = cv.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
@@ -360,6 +471,10 @@ require([
       g.fillStyle = "#d22"; g.fillText("threshold", w-mr-54, ty-3); }
     series.forEach(function (s) { g.strokeStyle = s.color; g.lineWidth = 2; g.beginPath();
       for (var i = 0; i < xs.length; i++) { var X = px(xs[i]), Y = py(s.values[i]); if (i===0) g.moveTo(X,Y); else g.lineTo(X,Y); } g.stroke(); });
+    // point-of-compliance marker (AB: x by water use)
+    if (poc != null && poc >= 0 && poc <= L) { var xp = px(poc); g.strokeStyle = "#7a3ea8"; g.lineWidth = 1.5; g.setLineDash([3,2]);
+      g.beginPath(); g.moveTo(xp, mt); g.lineTo(xp, mt+ph); g.stroke(); g.setLineDash([]);
+      g.fillStyle = "#7a3ea8"; g.fillText("POC " + poc + "m", xp + 2, mt + 9); }
     // legend
     var leg = $("leg"); leg.textContent = "";
     series.forEach(function (s) { var sp = document.createElement("span"); var i = document.createElement("i"); i.style.background = s.color; sp.appendChild(i); sp.appendChild(document.createTextNode(s.name)); leg.appendChild(sp); });
@@ -427,11 +542,18 @@ require([
       var cl = NATEngine.centerline(p, cxs, t, engine);
       series = [{ name: $("sub").value.indexOf("manual")===0 ? "centerline" : $("sub").value, color: "#1b6ec2", values: cl }];
       reach = NATEngine.plumeLength(cxs, cl, Tc);
-      $("readout").textContent = (engine === "bioscreen_at" ? "BIOSCREEN-AT exact" : "Domenico") +
+      var rd = (engine === "bioscreen_at" ? "BIOSCREEN-AT exact" : "Domenico") +
         " · " + (mode === "transient" ? "t=" + num("t") + " yr" : "steady-state") +
         " · plume to threshold ≈ " + (reach == null ? "> domain" : Math.round(reach) + " m");
+      var xp = xPOC();
+      if (xp != null) {
+        var cPOC = NATEngine.concentration(p, xp, 0, 0, t, engine);
+        rd += "  |  POC (" + $("wateruse").value + ", x=" + xp + " m): " + cPOC.toExponential(2) +
+          " mg/L → " + (cPOC <= Tc ? "PASS" : "EXCEEDS") + " vs " + Tc + " mg/L";
+      }
+      $("readout").textContent = rd;
     }
-    plotChart(cxs, series, Tc, L, C0);
+    plotChart(cxs, series, Tc, L, C0, xPOC());
 
     $("lmin").textContent = Tc + " mg/L"; $("lmax").textContent = C0 + " mg/L";
     status("Updated · " + (chainOn ? "chlorinated chain" : engine === "bioscreen_at" ? "exact solver" : "Domenico") + " · map grid " + nx + "×" + ny);
@@ -464,25 +586,54 @@ require([
   });
 
   // ---- Source pathway: Steps 1–3 (Soil→Leachate→Mixing → C₀), via validated soil_to_gw.js ----
-  var BC_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-5, igr:0.008, Z:3 };
-  var AB_DEF = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55, K:3e-7, igr:0.028, Z:3 };
+  // Framework defaults populate ALL Steps 1–3 inputs. BC = BC GPM App-3 generic.
+  // AB = Tier 2 Appendix A Table A-2 (soil/hydrogeo) + A-3 (site), 2024, Fine vs Coarse soil.
+  // (K stored in m/s; AB A-2 lists 32 m/y fine / 320 m/y coarse → 1.0e-6 / 1.0e-5 m/s.)
+  var BC_DEF    = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.55,  K:3e-5,  igr:0.008, Z:3, Y:30 };
+  // K from AB Table C-2: 320 (coarse) / 32 (fine) m/yr → m/s (÷3.15576e7) = 1.014e-5 / 1.014e-6. Using the
+  // round 1e-5/1e-6 m/s (=315.6/31.6 m/yr) is ~1.4% low and was the dominant source of the reconciliation residual.
+  var AB_COARSE = { n:0.36, nw:0.119, ne:0.25, rhob:1.7, dwt:3, dfr:0, Xlen:10, da:5, I:0.06,  K:1.0140e-5, igr:0.028, Z:3, Y:10 };
+  var AB_FINE   = { n:0.47, nw:0.168, ne:0.25, rhob:1.4, dwt:3, dfr:0, Xlen:10, da:5, I:0.012, K:1.0140e-6, igr:0.028, Z:3, Y:10 };
+  var abTexture = "coarse"; // AB Tier 1 generic = coarse (conservative/mobile)
+  function frameworkDef(jur) { return jur === "AB" ? (abTexture === "fine" ? AB_FINE : AB_COARSE) : BC_DEF; }
   function fmt(x) { return (x >= 1000) ? Math.round(x).toLocaleString() : Number(x).toPrecision(4); }
-  function rangeFlags(sp) {
-    var f = []; if (sp.foc < 0.001 || sp.foc > 0.05) f.push("foc");
-    if (sp.n < 0.2 || sp.n > 0.4) f.push("n"); if (sp.nw < 0 || sp.nw > 0.4 || sp.nw > sp.n) f.push("n_w");
-    if (sp.X < 5) f.push("X"); if (sp.da < 5 || sp.da > 20) f.push("d_a"); if (sp.d < 1) f.push("d");
-    if (sp.P_mm / 1000 < 0.08) f.push("I"); return f;
+  // Allowable input ranges by framework (keyed by input field id). BC = BC GPM defaults sheet.
+  // AB = Tier 2 Appendix C Table C-1 (illustrative ranges), texture-dependent (coarse/fine).
+  // (K stored m/s; AB C-1 lists m/y: coarse 32–3200 → 1.01e-6–1.01e-4; fine 0.032–32 → 1.01e-9–1.01e-6.)
+  var BC_RANGES = { foc:[0.001,0.05], n:[0.2,0.4], nw:[0,0.4], Xlen:[5,1e9], da:[5,20], dwt:[1,1e9], I:[0.08,1e9] };
+  var AB_RANGES = {
+    coarse: { rhob:[1.5,1.8], foc:[0.0005,0.007], K:[1.01e-6,1.01e-4], igr:[0.001,0.1], Z:[0.5,5], dwt:[0,10], Xlen:[5,30], Y:[5,30] },
+    fine:   { rhob:[1.3,1.6], foc:[0.0005,0.03],  K:[1.01e-9,1.01e-6], igr:[0.001,0.1], Z:[0.5,5], dwt:[0,10], Xlen:[5,30], Y:[5,30] }
+  };
+  var RANGE_LABEL = { rhob:"ρb", foc:"foc", K:"K", igr:"i", Z:"Z", dwt:"d", Xlen:"X", Y:"Y", n:"n", nw:"n_w", da:"d_a", I:"I" };
+  function activeRanges() { var j = $("jur").value; return j === "AB" ? AB_RANGES[abTexture] : (j === "BC" ? BC_RANGES : null); }
+  function rangeFlags() {
+    var R = activeRanges(); if (!R) return [];
+    var f = [];
+    for (var id in R) { if (!$(id)) continue; var v = num(id); if (isFinite(v) && (v < R[id][0] || v > R[id][1])) f.push(RANGE_LABEL[id] || id); }
+    return f;
   }
   function computePathway() {
     var out = $("pathOut"); out.textContent = "";
     if ($("jur").value === "manual") return;
     var name = $("sub").value;
     if (name.indexOf("manual") === 0 || !DB) { out.textContent = "Select a database substance to use the pathway."; return; }
-    var e = DB.substances[name], pH = num("pH");
-    var sub = { name: name, cls: e.cls, koc: (e.koc != null ? e.koc : null),
-      kd: (e.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: (e.henry || 0),
-      t_half_unsat_d: e.t_half_unsat_d, t_half_sat_d: e.t_half_sat_d,
-      solubility_ug_L: (e.solubility_ug_L != null ? e.solubility_ug_L : Infinity),
+    // AB Tier 2 does NOT derive soil→GW guidelines for inorganics/metals (requires site-specific GW sampling).
+    if ($("jur").value === "AB" && DB.substances[name] && DB.substances[name].cls === "metal") {
+      var w = document.createElement("div"); w.style.color = "#c60";
+      w.textContent = "⚠ AB Tier 2 does not model soil→groundwater for metals — enter the observed groundwater concentration (site-specific sampling) as C₀. The AB groundwater standard still applies as the compliance threshold.";
+      out.appendChild(w);
+      $("c0").readOnly = false; $("c0").style.background = "";   // let user enter observed C₀
+      return;
+    }
+    if ($("c0")) { $("c0").readOnly = true; $("c0").style.background = "#eef3f8"; } // pathway derives C₀
+    var e = DB.substances[name], pH = num("pH"), c = chemFor(name);
+    var hlD = (c.hl_yr != null) ? c.hl_yr * 365.25 : null;   // A-6 gives one half-life (yr)→days
+    var sub = { name: name, cls: c.cls,
+      koc: (c.kd != null ? c.kd / num("foc") : c.koc), // fixed-Kd → effective Koc so kdEff = Kd in soil_to_gw
+      kd: (c.cls === "metal" ? NATEngine.kd(name, pH) : null), henry: c.henry,
+      t_half_unsat_d: (c.src === "AB A-6" ? hlD : e.t_half_unsat_d), t_half_sat_d: (c.src === "AB A-6" ? hlD : e.t_half_sat_d),
+      solubility_ug_L: (c.sol_ug_L != null ? c.sol_ug_L : Infinity),
       detection_limit_ug_g: null, background_ug_g: null, standards: {} };
     var sp = NATSoilToGW.jurisdictionDefaults($("jur").value === "AB" ? "AB" : "BC");
     sp.foc = num("foc"); sp.n = num("n"); sp.nw = num("nw"); sp.ne = num("ne"); sp.rho_b = num("rhob");
@@ -494,27 +645,87 @@ require([
     else if (start === "CL") CL = num("cl_in");
     if (start === "soil" || start === "CL") CZ = (b <= 0) ? CL : CL * S.fUnsaturated(sub, sp);
     else CZ = num("cz_in");
-    C0 = CZ / S.dilutionFactor(sp);
+    var zdFixed = (waterUse() === "DW") ? 2 : null;   // AB drinking-water pathway: mixing zone Zd = 2 m
+    // AB uses its own calculated mixing-zone constants (abMix) for non-DW pathways (Zd = 0.01·X +
+    // da·(1−exp(−2.178·X·I/(V·da))), p133); BC keeps the validated GPM constants. Reconciled to the
+    // published AB Tier 1 aquatic guidelines (ab_tier1_reconcile.js). DW bypasses via zdFixed = 2 m.
+    var DF = S.dilutionFactor(sp, zdFixed, $("jur").value === "AB");
+    C0 = CZ / DF;
     var capped = false; if (isFinite(sol) && C0 > 2 * sol) { C0 = 2 * sol; capped = true; }
-    var C0mg = C0 / 1000, v = sp.K_m_s * sp.i / sp.ne * 3.1536e7;
+    // Seepage velocity porosity is framework-specific: AB Tier 2 uses TOTAL porosity θt
+    // (DF4: v = V/(θt·Rs), p104); BC GPM uses effective porosity ne (Model 4: v = K·i/ne).
+    var velPor = ($("jur").value === "AB") ? sp.n : sp.ne;
+    var C0mg = C0 / 1000, v = sp.K_m_s * sp.i / velPor * 3.1536e7;
     $("c0").value = Number(C0mg.toPrecision(4)); $("v").value = Number(v.toPrecision(4));
     function line(t) { var d = document.createElement("div"); d.textContent = t; out.appendChild(d); }
     if (start === "soil") line("C_L = " + fmt(CL) + " µg/L" + (CL >= sol ? "  (solubility-capped)" : ""));
     line(b <= 0 ? "C_Z = C_L  (source at water table, b ≤ 0 → no unsat. step)" : "C_Z = " + fmt(CZ) + " µg/L");
-    line("DF = " + S.dilutionFactor(sp).toFixed(2) + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
-    line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/n_e)");
-    var fl = rangeFlags(sp);
-    if (fl.length) { var w = document.createElement("div"); w.style.color = "#c60"; w.textContent = "⚠ outside BC allowable range: " + fl.join(", ") + " (allowed, but flagged)"; out.appendChild(w); }
+    line("DF = " + DF.toFixed(2) + (zdFixed ? " (DW Zd=2m)" : "") + "  →  C₀ = " + fmt(C0) + " µg/L = " + C0mg.toPrecision(4) + " mg/L" + (capped ? "  (2× solubility cap)" : ""));
+    line("→ seepage v = " + v.toFixed(1) + " m/yr  (from K·i/" + ($("jur").value === "AB" ? "θt, total porosity" : "n_e") + ")");
+    var fl = rangeFlags();
+    if (fl.length) {
+      var fw = $("jur").value === "AB" ? "AB Tier 2 C-1 (" + abTexture + ")" : "BC GPM";
+      var w = document.createElement("div"); w.style.color = "#c60";
+      w.textContent = "⚠ outside " + fw + " allowable range: " + fl.join(", ") + " (allowed, but flagged)";
+      out.appendChild(w);
+    }
   }
-  function populateDefaults(jur) { var d = (jur === "AB") ? AB_DEF : BC_DEF; for (var k in d) { if ($(k)) $(k).value = d[k]; } }
+  function populateDefaults(jur) {
+    var d = frameworkDef(jur); for (var k in d) { if ($(k)) $(k).value = d[k]; }
+    // AB recharge exception (Table 6 / p108): fine recharge may apply at a coarse site with a
+    // continuous fine-grained layer ≥1 m overlying the aquifer.
+    if (jur === "AB" && abTexture === "coarse" && $("abFineLayer") && $("abFineLayer").checked) { $("I").value = AB_FINE.I; }
+  }
+  function setMode(m) {
+    mode = m;
+    Array.prototype.forEach.call($("modeSeg").children, function (x) { x.classList.toggle("on", x.getAttribute("data-mode") === m); });
+    $("timeWrap").style.display = (m === "transient") ? "block" : "none";
+  }
+  // Master framework driver: selecting a framework aligns ALL inputs + the compliance standard.
   function onJur() {
-    var active = $("jur").value !== "manual";
+    var jur = $("jur").value, active = jur !== "manual";
     $("pathBody").style.display = active ? "block" : "none";
+    $("abTexRow").style.display = (jur === "AB") ? "block" : "none";       // AB-only soil texture
+    if ($("cityRow")) $("cityRow").style.display = (jur === "BC") ? "block" : "none"; // BC-only city I
+    if ($("wuRow")) $("wuRow").style.display = (jur === "AB") ? "block" : "none";      // AB-only water-use POC
+    if ($("ne")) { var abNe = (jur === "AB");                              // AB: ne unused (velocity uses θt)
+      $("ne").readOnly = abNe; $("ne").style.background = abNe ? "#eee" : "";
+      $("ne").title = abNe ? "Not used in AB Tier 2 — velocity uses total porosity θt" : ""; }
+    // AB Table 6: infiltration I and aquifer thickness d_a are NOT adjustable at Tier 2 → read-only
+    ["I", "da"].forEach(function (id) { if ($(id)) { var ab = (jur === "AB");
+      $(id).readOnly = ab; $(id).style.background = ab ? "#eee" : "";
+      $(id).title = ab ? "Fixed at Tier 2 — not adjustable (AB Table 6)" : ""; } });
     $("c0").readOnly = active; $("v").readOnly = active;
     $("c0").style.background = active ? "#eef3f8" : ""; $("v").style.background = active ? "#eef3f8" : "";
-    if (active) populateDefaults($("jur").value);
+    if (active) populateDefaults(jur);
+    refreshSubstanceList();           // add/remove AB-only contaminants (PHC fractions, VC, …)
+    if ($("abC2Note")) {              // AB Table C-2 linked-groups reminder (free-edit, but flagged)
+      $("abC2Note").style.display = (jur === "AB") ? "block" : "none";
+      $("abC2Note").textContent = "⚠ AB Table C-2 — linked parameters must be adjusted TOGETHER as a group: if you change one, change all in its group. (1) Soil properties: ρb, moisture, total/air/water porosity. (2) Source dimensions: X, Y, depth-to-contam., thickness, depth-to-GW. (3) Hydrogeology: K + i. Independent (vary alone): foc, distance to receptor. Inputs here are free-edit — apply this rule manually.";
+    }
+    syncComplianceToFramework(jur);   // align the compliance standard to the framework
+    if (jur === "AB") { setMode("transient"); if (num("t") !== 500) $("t").value = 500; } // AB DF4 = transient t=500 yr
+    else if (jur === "BC") { setMode("steady"); }                                          // BC GPM = steady-state
+    onContaminant();                  // refresh R / half-life (AB uses A-6 chemistry)
     run();
   }
+  // Align the compliance-standard family to the chosen framework (BC→BC CSR, AB→AB GW Tier 2).
+  function syncComplianceToFramework(jur) {
+    if (!STD || jur === "manual") return;
+    var fams = Object.keys(STD.families), pick = null;
+    if (jur === "AB") pick = (fams.indexOf("AB GW Tier 2") >= 0) ? "AB GW Tier 2" : fams.filter(function (f) { return f.indexOf("AB") === 0; })[0];
+    else if (jur === "BC") pick = (fams.indexOf("BC CSR") >= 0) ? "BC CSR" : fams.filter(function (f) { return f.indexOf("BC") === 0; })[0];
+    if (pick) { $("fw").value = pick; onFw(); }
+  }
+  // AB soil-texture toggle (Fine/Coarse) — repopulates AB inputs from Table A-2
+  Array.prototype.forEach.call($("texSeg").children, function (b) {
+    b.addEventListener("click", function () {
+      abTexture = b.getAttribute("data-tex");
+      Array.prototype.forEach.call($("texSeg").children, function (x) { x.classList.toggle("on", x === b); });
+      if ($("jur").value === "AB") { populateDefaults("AB"); run(); }
+    });
+  });
+  if ($("abFineLayer")) $("abFineLayer").addEventListener("change", function () { if ($("jur").value === "AB") { populateDefaults("AB"); run(); } });
   function onStart() {
     var s = $("start").value;
     $("inSoil").style.display = (s === "soil") ? "block" : "none";
@@ -534,7 +745,7 @@ require([
   ["cs","cl_in","cz_in","n","nw","ne","rhob","dwt","dfr","Xlen","da","I","K","igr"].forEach(function (id) { $(id).addEventListener("change", run); });
 
   onFw();
-  view.when(function () { viewReady = true; drawSource(); status("Ready."); run(); });
+  view.when(function () { viewReady = true; drawSource(); loadWells(); status("Ready."); run(); });
 });
 </script>
 </body>

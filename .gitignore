@@ -1,0 +1,5 @@
+# Confidential / EQuIS data — NEVER push to the public repo (S14)
+wells_demo.geojson
+*results*.json
+*.token
+eq_tok
